@@ -39,10 +39,14 @@
     <BootstrapperEnabled>true</BootstrapperEnabled>
     <TargetFrameworkProfile>
     </TargetFrameworkProfile>
-    <SccProjectName>Svn</SccProjectName>
-    <SccLocalPath>Svn</SccLocalPath>
-    <SccAuxPath>Svn</SccAuxPath>
-    <SccProvider>SubversionScc</SccProvider>
+    <SccProjectName>
+    </SccProjectName>
+    <SccLocalPath>
+    </SccLocalPath>
+    <SccAuxPath>
+    </SccAuxPath>
+    <SccProvider>
+    </SccProvider>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -121,16 +125,17 @@
     <RunPostBuildEvent>OnOutputUpdated</RunPostBuildEvent>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Google.GData.AccessControl, Version=1.9.0.0, Culture=neutral, PublicKeyToken=b4b8eb9a7afc8328, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\GoogleAPI\Google.GData.AccessControl.dll</HintPath>
+    <Reference Include="Google.GData.AccessControl, Version=2.2.0.0, Culture=neutral, PublicKeyToken=b4b8eb9a7afc8328, processorArchitecture=MSIL">
+      <HintPath>..\packages\Google.GData.AccessControl.2.2.0.0\lib\Google.GData.AccessControl.dll</HintPath>
+      <Private>True</Private>
     </Reference>
-    <Reference Include="Google.GData.Calendar">
-      <HintPath>..\GoogleAPI\Google.GData.Calendar.dll</HintPath>
+    <Reference Include="Google.GData.Calendar, Version=2.2.0.0, Culture=neutral, PublicKeyToken=aa6748391206b888, processorArchitecture=MSIL">
+      <HintPath>..\packages\Google.GData.Calendar.2.2.0.0\lib\Google.GData.Calendar.dll</HintPath>
+      <Private>True</Private>
     </Reference>
-    <Reference Include="Google.GData.Client, Version=1.7.0.12891, Culture=neutral, PublicKeyToken=04a59ca9b0273830, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\GoogleAPI\Google.GData.Client.dll</HintPath>
+    <Reference Include="Google.GData.Client, Version=2.2.0.0, Culture=neutral, PublicKeyToken=04a59ca9b0273830, processorArchitecture=MSIL">
+      <HintPath>..\packages\Google.GData.Client.2.2.0.0\lib\Google.GData.Client.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="Google.GData.Contacts, Version=1.7.0.12893, Culture=neutral, PublicKeyToken=7e065189dd4b982f, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -139,14 +144,18 @@
     <Reference Include="Google.GData.Documents">
       <HintPath>..\GoogleAPI\Google.GData.Documents.dll</HintPath>
     </Reference>
-    <Reference Include="Google.GData.Extensions, Version=1.7.0.12892, Culture=neutral, PublicKeyToken=0b4c5df2ebf20876, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\GoogleAPI\Google.GData.Extensions.dll</HintPath>
+    <Reference Include="Google.GData.Extensions, Version=2.2.0.0, Culture=neutral, PublicKeyToken=0b4c5df2ebf20876, processorArchitecture=MSIL">
+      <HintPath>..\packages\Google.GData.Extensions.2.2.0.0\lib\Google.GData.Extensions.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.Office.Interop.Outlook, Version=14.0.0.0, Culture=neutral, PublicKeyToken=71e9bce111e9429c, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <EmbedInteropTypes>True</EmbedInteropTypes>
       <HintPath>..\OutlookAPI\Microsoft.Office.Interop.Outlook.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=4.0.5.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.4.0.5\lib\net40\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="SecurityManager.2005, Version=6.1.3016.2005, Culture=neutral, PublicKeyToken=aa42cad61af07cf4, processorArchitecture=MSIL">
@@ -350,6 +359,7 @@
       <DependentUpon>TrialityNotifierForm.cs</DependentUpon>
     </Compile>
     <Compile Include="Utilities.cs" />
+    <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>

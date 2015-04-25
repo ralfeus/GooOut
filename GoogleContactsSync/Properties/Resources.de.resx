@@ -1,0 +1,433 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="Proxies" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Proxies.bmp;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Accounts" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Accounts.bmp;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="QuestionMarkIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\QuestionMarkIcon.gif;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Sync" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Sync.bmp;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Advanced" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Advanced.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Sync1" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Sync.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Sync2" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Sync.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Confirm_StopSyncronization" xml:space="preserve">
+    <value>Sind Sie sicher, dass Sie die Synchronisation zu unterbrechen möchten?</value>
+  </data>
+  <data name="Error_AnotherInstanceIsRunning" xml:space="preserve">
+    <value>Eine andere Instanz von {0} wird bereits ausgeführt.</value>
+  </data>
+  <data name="Error_AutostartSetFailure" xml:space="preserve">
+    <value>GooOut kann nicht im Autostart angelegt werden</value>
+  </data>
+  <data name="Error_ConnectionFailure" xml:space="preserve">
+    <value>Es kann keine Verbindung zu Google hergestellt werden. Überprüfen Sie Ihre Internet-Verbindung und Proxy-Einstellungen.</value>
+  </data>
+  <data name="Error_EventScheduleIsNotSet" xml:space="preserve">
+    <value>Der Zeitplan der Veranstaltung ist nicht gesetzt. Aktuelle Operation ist ohne Zeitplan Satz unmöglich</value>
+  </data>
+  <data name="Error_InvalidItem" xml:space="preserve">
+    <value>Der Posten vorgesehen ist weder von Google noch von Outlook</value>
+  </data>
+  <data name="Error_ItemSynchronizationFailure" xml:space="preserve">
+    <value>Die Aktion mit dem Element fehlgeschlagen:</value>
+  </data>
+  <data name="Error_NoDataToSyncronizeSpecified" xml:space="preserve">
+    <value>Es gibt neuen Daten die synchronisiert werden müssen.
+Bitte wählen Sie eine Option:
+- Kontakte
+- Kalender</value>
+  </data>
+  <data name="Error_RegistrationFailure" xml:space="preserve">
+    <value>Die Lizenznummer ist ungültig. Bitte überprüfen Sie die Nummer und versuchen Sie es noch einmal.</value>
+  </data>
+  <data name="Error_WrongYearlyInterval" xml:space="preserve">
+    <value>Das Intervall für die jährliche Wiederholung Muster wird von dieser Version von Outlook unterstützt. Dieser Artikel wird nicht synchronisiert</value>
+  </data>
+  <data name="Notification_SyncComplete" xml:space="preserve">
+    <value>Die Synchronisierung ist abgeschlossen</value>
+  </data>
+  <data name="Notification_SyncFailed" xml:space="preserve">
+    <value>Die Synchronisierung ist fehlgeschlagen</value>
+  </data>
+  <data name="Notification_UpdateFailure" xml:space="preserve">
+    <value>Die Aktualisierung ist fehlgeschlagen</value>
+  </data>
+  <data name="Notification_UpdateRestartNeeded" xml:space="preserve">
+    <value>Die Anwendung ist aktualisiert. Neustart von GooOut erforderlich.</value>
+  </data>
+  <data name="Notification_UpdateSuccess" xml:space="preserve">
+    <value>GooOut wurde erfolgreich aktualisiert.</value>
+  </data>
+  <data name="Notification_UpdateUpToDate" xml:space="preserve">
+    <value>GooOut ist auf dem aktuellsten Stand</value>
+  </data>
+  <data name="RegistrationSettings_RegistrationNotificationText" xml:space="preserve">
+    <value>Eingetragen Registrierungsnummer wird nach dem Neustart der Anwendung angewendet werden</value>
+  </data>
+  <data name="RegistrationSettings_RegistrationNumber" xml:space="preserve">
+    <value>A262-B752-GOOO-2552-1460-0010-0G</value>
+  </data>
+  <data name="Warning_ApplicationExpired" xml:space="preserve">
+    <value>Die Testversion ist abgelaufen. Folgende Funktionalitäten stehen nicht zur Verfügung:
+Kalender-Synchronisation
+
+Um die volle Funktionalität zu erhalten, müssen Sie GooOut registrieren</value>
+  </data>
+  <data name="Error_NotRebootedAfterInstallation" xml:space="preserve">
+    <value>Ihr PC wurde nach der Installation nicht neu gestartet. Sie müssen den PC neu zu starten. Möchten Sie jetzt neu starten?</value>
+  </data>
+  <data name="AboutBox_btnClose_Text" xml:space="preserve">
+    <value>Schließen</value>
+  </data>
+  <data name="AboutBox_btnRegister_Text" xml:space="preserve">
+    <value>Registrieren</value>
+  </data>
+  <data name="AboutBox_lblCompanyName_Text" xml:space="preserve">
+    <value>Firma</value>
+  </data>
+  <data name="AboutBox_lblProductName_Text" xml:space="preserve">
+    <value>Produktname</value>
+  </data>
+  <data name="AboutBox_lblVersion_Text" xml:space="preserve">
+    <value>Version {0}</value>
+  </data>
+  <data name="AboutBox_lnkHelp_Text" xml:space="preserve">
+    <value>GooOut Website</value>
+  </data>
+  <data name="AboutBox_lnkTermsOfService_Text" xml:space="preserve">
+    <value>Nutzungsbedingungen</value>
+  </data>
+  <data name="AboutBox_Text" xml:space="preserve">
+    <value>Über {0}</value>
+  </data>
+  <data name="AboutBox_txtDescription_Text" xml:space="preserve">
+    <value>Beschreibung</value>
+  </data>
+  <data name="CalendarSyncSettings_groupBox1_Text" xml:space="preserve">
+    <value>Synchronisation Bereich</value>
+  </data>
+  <data name="CalendarSyncSettings_groupBox2_Text" xml:space="preserve">
+    <value>Kalender Synchronisation Einstellungen</value>
+  </data>
+  <data name="CalendarSyncSettings_label1_Text" xml:space="preserve">
+    <value>Tage &amp;bevor</value>
+  </data>
+  <data name="CalendarSyncSettings_label2_Text" xml:space="preserve">
+    <value>Tage n&amp;ach</value>
+  </data>
+  <data name="CalendarSyncSettings_label3_Text" xml:space="preserve">
+    <value>Kalendername</value>
+  </data>
+  <data name="CalendarSyncSettings_Text" xml:space="preserve">
+    <value>CalendarSyncSettings</value>
+  </data>
+  <data name="ConflictResolverForm_button1_Text" xml:space="preserve">
+    <value>Über&amp;springen</value>
+  </data>
+  <data name="ConflictResolverForm_cancel_Text" xml:space="preserve">
+    <value>Annullieren</value>
+  </data>
+  <data name="ConflictResolverForm_keepGoogle_Text" xml:space="preserve">
+    <value>&amp;Google-Eintrag halten</value>
+  </data>
+  <data name="ConflictResolverForm_keepOutlook_Text" xml:space="preserve">
+    <value>&amp;Outlook-Eintrag halten</value>
+  </data>
+  <data name="ConflictResolverForm_messagelabel_Text" xml:space="preserve">
+    <value>message</value>
+  </data>
+  <data name="ConflictResolverForm_Text" xml:space="preserve">
+    <value>Ein Konflikt wurde festgestellt.</value>
+  </data>
+  <data name="DeleteDuplicatesForm_Text" xml:space="preserve">
+    <value>Duplikate löschen</value>
+  </data>
+  <data name="LogForm_lastSynclabel_Text" xml:space="preserve">
+    <value>Letzte Synchronisierung um</value>
+  </data>
+  <data name="LogForm_loggroupbox_Text" xml:space="preserve">
+    <value>Protokoll der Synchronisation</value>
+  </data>
+  <data name="LogForm_Text" xml:space="preserve">
+    <value>GooOut -Synchronisierungsprotokoll</value>
+  </data>
+  <data name="RegisterForm_btnCancel_Text" xml:space="preserve">
+    <value>Annulieren</value>
+  </data>
+  <data name="RegisterForm_btnOk_Text" xml:space="preserve">
+    <value>&amp;OK</value>
+  </data>
+  <data name="RegisterForm_lnkGetRegNumber_Text" xml:space="preserve">
+    <value>Lizenz kaufen...</value>
+  </data>
+  <data name="RegisterForm_Text" xml:space="preserve">
+    <value>Geben Sie Ihre Lizenz ein:</value>
+  </data>
+  <data name="SettingForm_nextSyncLabel_Text" xml:space="preserve">
+    <value>Nächste Synchronisationg in</value>
+  </data>
+  <data name="SettingsForm_Authorization_Text" xml:space="preserve">
+    <value>Die A&amp;uthentifizierung</value>
+  </data>
+  <data name="SettingsForm_btSyncCalendar_Text" xml:space="preserve">
+    <value>Sync Kalender</value>
+  </data>
+  <data name="SettingsForm_btSyncContacts_Text" xml:space="preserve">
+    <value>Sync Kontakte</value>
+  </data>
+  <data name="SettingsForm_customproxy_Text" xml:space="preserve">
+    <value>Benutzerdefinierte Proxy-Server</value>
+  </data>
+  <data name="SettingsForm_groupBox2_Text" xml:space="preserve">
+    <value>Optionen</value>
+  </data>
+  <data name="SettingsForm_groupBox3_Text" xml:space="preserve">
+    <value>Proxy</value>
+  </data>
+  <data name="SettingsForm_groupBox4_Text" xml:space="preserve">
+    <value>Google-Konto</value>
+  </data>
+  <data name="SettingsForm_grpAutoSync_Text" xml:space="preserve">
+    <value>Die Frequenz der Synchronisierung</value>
+  </data>
+  <data name="SettingsForm_HideButton_Text" xml:space="preserve">
+    <value>&amp;Verstecken</value>
+  </data>
+  <data name="SettingsForm_InkBuynow_Text" xml:space="preserve">
+    <value>Jetzt kaufen</value>
+  </data>
+  <data name="SettingsForm_InkHelp_Text" xml:space="preserve">
+    <value>Hilfe</value>
+  </data>
+  <data name="SettingsForm_Label1_Text" xml:space="preserve">
+    <value>Intervall</value>
+  </data>
+  <data name="SettingsForm_Label2_Text" xml:space="preserve">
+    <value>Username:</value>
+  </data>
+  <data name="SettingsForm_Label3_Text" xml:space="preserve">
+    <value>Passwort:</value>
+  </data>
+  <data name="SettingsForm_Label4_Text" xml:space="preserve">
+    <value>Minuten</value>
+  </data>
+  <data name="SettingsForm_Label5_Text" xml:space="preserve">
+    <value>Outlook-Profil:</value>
+  </data>
+  <data name="SettingsForm_Label6_Text" xml:space="preserve">
+    <value>Der Ben&amp;utzer:</value>
+  </data>
+  <data name="SettingsForm_Label7_Text" xml:space="preserve">
+    <value>Kennwort:</value>
+  </data>
+  <data name="SettingsForm_Label8_Text" xml:space="preserve">
+    <value>Adresse:</value>
+  </data>
+  <data name="SettingsForm_Label9_Text" xml:space="preserve">
+    <value>Port:</value>
+  </data>
+  <data name="SettingsForm_lblLanguageChangeNotification_Text" xml:space="preserve">
+    <value>Die Sprache wird beim nächsten Start der Anwendung geändert</value>
+  </data>
+  <data name="SettingsForm_lblLanguage_Text" xml:space="preserve">
+    <value>Sprache</value>
+  </data>
+  <data name="SettingsForm_mniAutoSync_Text" xml:space="preserve">
+    <value>&amp;Auto sync</value>
+  </data>
+  <data name="SettingsForm_mniLog_Text" xml:space="preserve">
+    <value>Protokoll ansehen</value>
+  </data>
+  <data name="SettingsForm_mniRegister_Text" xml:space="preserve">
+    <value>Lizenz eingeben</value>
+  </data>
+  <data name="SettingsForm_mniSettings_Text" xml:space="preserve">
+    <value>Optionen</value>
+  </data>
+  <data name="SettingsForm_mniStopSync_Text" xml:space="preserve">
+    <value>S&amp;top sync</value>
+  </data>
+  <data name="SettingsForm_mniSync_Text" xml:space="preserve">
+    <value>&amp;Sync</value>
+  </data>
+  <data name="SettingsForm_notifyIcon_Text" xml:space="preserve">
+    <value>GooOut Multisynchronizer</value>
+  </data>
+  <data name="SettingsForm_reportSyncResultCheckBox_Text" xml:space="preserve">
+    <value>Re&amp;portieren ein Syncresultat im Systemtray</value>
+  </data>
+  <data name="SettingsForm_resetMatchesLinkLabel_text" xml:space="preserve">
+    <value>&amp;Reset Matches</value>
+  </data>
+  <data name="SettingsForm_systemproxy_Text" xml:space="preserve">
+    <value>System Proxy-Server</value>
+  </data>
+  <data name="SettingsForm_tbSyncProfile_Text" xml:space="preserve">
+    <value>Outlook</value>
+  </data>
+  <data name="SettingsForm_tbtnAdvanced_Text" xml:space="preserve">
+    <value>Weiter</value>
+  </data>
+  <data name="SettingsForm_tbtnGeneral_Text" xml:space="preserve">
+    <value>Allgemein</value>
+  </data>
+  <data name="SettingsForm_tbtnProxy_Text" xml:space="preserve">
+    <value>Proxy</value>
+  </data>
+  <data name="SettingsForm_Text" xml:space="preserve">
+    <value>GooOut - Multisynchronizer</value>
+  </data>
+  <data name="SettingsForm_toolStripMenuItem2_Text" xml:space="preserve">
+    <value>Beenden</value>
+  </data>
+  <data name="SettingsForm_toolStripMenuItem5_Text" xml:space="preserve">
+    <value>Über GooOut</value>
+  </data>
+  <data name="SettingsForm_TsTabs_Text" xml:space="preserve">
+    <value>toolStrip1</value>
+  </data>
+  <data name="TrialityNotifierForm_btnClose_Text" xml:space="preserve">
+    <value>Beenden</value>
+  </data>
+  <data name="TrialityNotifierForm_Text" xml:space="preserve">
+    <value>Testversion - Bitte registrieren</value>
+  </data>
+  <data name="Error_LogSendingFailure" xml:space="preserve">
+    <value>Der Protokoll konnte nicht geschickt wird. Prüfen Sie die Internetverbindung und probieren Sie noch einmal.</value>
+  </data>
+  <data name="Notification_LogSent" xml:space="preserve">
+    <value>Der Protokoll wurde erfolgreich geschickt</value>
+  </data>
+  <data name="Confirm_SendSessionLog" xml:space="preserve">
+    <value>Möchten Sie den Fehlerbericht schicken?</value>
+  </data>
+</root>

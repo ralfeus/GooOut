@@ -1,0 +1,78 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="R.GoogleOutlookSync.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="ApplicationRegistryKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Software\Rasoft\GoogleOutlookSync</Value>
+    </Setting>
+    <Setting Name="CalendarSettings_RangeBefore" Type="System.String" Scope="User">
+      <Value Profile="(Default)">CalendarRangeDaysBefore</Value>
+    </Setting>
+    <Setting Name="CalendarSettings_RangeAfter" Type="System.String" Scope="User">
+      <Value Profile="(Default)">CalendarRangeDaysAfter</Value>
+    </Setting>
+    <Setting Name="CalendarSettings_CalendarName" Type="System.String" Scope="User">
+      <Value Profile="(Default)">CalendarName</Value>
+    </Setting>
+    <Setting Name="GoogleUrl_Calendar" Type="System.String" Scope="User">
+      <Value Profile="(Default)">http://www.google.com/calendar/feeds/default/owncalendars/full</Value>
+    </Setting>
+    <Setting Name="ExtendedPropertyName_GoogleIDInOutlookItem" Type="System.String" Scope="User">
+      <Value Profile="(Default)">GoogleItemID</Value>
+    </Setting>
+    <Setting Name="RegistrationSettings_ExpirationDate" Type="System.String" Scope="User">
+      <Value Profile="(Default)">StartDay</Value>
+    </Setting>
+    <Setting Name="RegistrationSettings_RegistrationNumberKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Identity</Value>
+    </Setting>
+    <Setting Name="RegistrationSettings_TrialityDuration" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">7</Value>
+    </Setting>
+    <Setting Name="URL_Help" Type="System.String" Scope="User">
+      <Value Profile="(Default)">http://www.gooout.net/help.html</Value>
+    </Setting>
+    <Setting Name="URL_Terms" Type="System.String" Scope="User">
+      <Value Profile="(Default)">http://www.gooout.net/terms-of-service.html</Value>
+    </Setting>
+    <Setting Name="URL_Register" Type="System.String" Scope="User">
+      <Value Profile="(Default)">http://www.gooout.net</Value>
+    </Setting>
+    <Setting Name="IsNotRegistered" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="URL_Update" Type="System.String" Scope="User">
+      <Value Profile="(Default)">http://www.gooout.net/download/</Value>
+    </Setting>
+    <Setting Name="URL_TrialityNotifier" Type="System.Uri" Scope="User">
+      <Value Profile="(Default)">http://www.gooout.net/popup/popup.php</Value>
+    </Setting>
+    <Setting Name="Registry_InstallTimeValue" Type="System.String" Scope="User">
+      <Value Profile="(Default)">InstallTime</Value>
+    </Setting>
+    <Setting Name="URL_InstallNotification" Type="System.Uri" Scope="User">
+      <Value Profile="(Default)">http://www.gooout.net/statistics.php</Value>
+    </Setting>
+    <Setting Name="Registry_Key_Autorun" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Software\Microsoft\Windows\CurrentVersion\RunOnce</Value>
+    </Setting>
+    <Setting Name="AttemptsAmount" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">3</Value>
+    </Setting>
+    <Setting Name="Registry_Key_OutlookProfiles" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Software\Microsoft\Windows NT\CurrentVersion\Windows Messaging Subsystem\Profiles</Value>
+    </Setting>
+    <Setting Name="Registry_Value_OutlookDefaultProfile" Type="System.String" Scope="User">
+      <Value Profile="(Default)">DefaultProfile</Value>
+    </Setting>
+    <Setting Name="Constant_RPC_server_is_not_available" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">-2147023174</Value>
+    </Setting>
+    <Setting Name="Constant_Profile_is_not_set_up" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">-2147352567</Value>
+    </Setting>
+    <Setting Name="Constant_ID_not_found" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">-2147220991</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>

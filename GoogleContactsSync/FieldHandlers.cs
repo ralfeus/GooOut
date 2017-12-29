@@ -1,14 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Reflection;
-using Google.GData.Client;
+using Google.Apis.Calendar.v3.Data;
 
 namespace R.GoogleOutlookSync
 {
-    internal delegate bool ComparerDelegate(AtomEntry googleItem, object outlookItem);
-    internal delegate void SetterDelegate(AtomEntry googleItem, object outlookItem, Target target);
+    internal delegate bool ComparerDelegate(Event googleItem, object outlookItem);
+    internal delegate void SetterDelegate(Event googleItem, object outlookItem, Target target);
 
     //TODO: Replace MethodInfo with functional types (I believe it should work faster than reflection)
     internal class FieldHandlers
@@ -16,8 +13,8 @@ namespace R.GoogleOutlookSync
         internal MethodInfo Comparer { get; private set; }
         //internal MethodInfo Getter { get; private set; }
         internal MethodInfo Setter { get; private set; }
-        internal Func<AtomEntry, object, bool> comparer { get; private set; }
-        internal Action<AtomEntry, object, Target> setter { get; private set; }
+        internal Func<Event, object, bool> comparer { get; private set; }
+        internal Action<Event, object, Target> setter { get; private set; }
 
         internal FieldHandlers(MethodInfo comparer/*, MethodInfo getter*/, MethodInfo setter)
         {
@@ -26,7 +23,7 @@ namespace R.GoogleOutlookSync
             this.Setter = setter;
         }
 
-        internal FieldHandlers(Func<AtomEntry, object, bool> comparer, Action<AtomEntry, object, Target> setter)
+        internal FieldHandlers(Func<Event, object, bool> comparer, Action<Event, object, Target> setter)
         {
             this.comparer = comparer;
             this.setter = setter;

@@ -1,12 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net.Mail;
 using System.Text;
 using System.Net;
-using Google.GData.Client;
-using System.Text.RegularExpressions;
-using Microsoft.Win32;
+using System.Diagnostics;
 
 namespace R.GoogleOutlookSync
 {
@@ -86,6 +83,10 @@ namespace R.GoogleOutlookSync
             {
                 _logWriter.Write(new_logEntry);
                 _logWriter.Flush();
+                if (eventType == EventType.Debug)
+                {
+                    Debug.Print(message);
+                }
             }
             catch (Exception)
             {

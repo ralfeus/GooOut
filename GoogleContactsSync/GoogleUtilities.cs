@@ -1,55 +1,76 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using Google.GData.Client;
-using Google.GData.Extensions;
-using Microsoft.Office.Interop.Outlook;
 using System.Net;
+using Google.Apis.Calendar.v3.Data;
+using System.Collections.Generic;
 
 namespace R.GoogleOutlookSync
 {
     internal static class GoogleUtilities
     {
-        internal static string GetItemID(AtomEntry item)
+        internal static AttendeeType GetAttendeeType(EventAttendee attendee)
         {
-            return item.Id.AbsoluteUri;
+            if (attendee.Optional.Value)
+            {
+                return AttendeeType.Optional;
+            } else if (attendee.Organizer.Value)
+            {
+                return AttendeeType.Organizer;
+            } else if (attendee.Resource.Value)
+            {
+                return AttendeeType.Resource;
+            } else
+            {
+                return AttendeeType.Required;
+            }
         }
 
-        internal static DateTime GetLastModificationTime(AtomEntry item)
+        internal static string GetItemID(Event item)
         {
-            return item.Updated;
+            return item.Id;
         }
 
-        internal static string GetOutlookID(AtomEntry item)
+        internal static DateTime GetLastModificationTime(Event item)
         {
-            var result =
-                ((ExtendedProperty)item.ExtensionElements.FirstOrDefault(
-                    element =>
-                        element.XmlName == "extendedProperty" &&
-                        ((ExtendedProperty)element).Name == Properties.Settings.Default.ExtendedPropertyName_OutlookIDInGoogleItem)
-                );
-            if (result == null)
+            return item.Updated ?? DateTime.MaxValue;
+        }
+
+        internal static string GetOutlookID(Event item)
+        {
+            try
+            {
+                var result = item.ExtendedProperties?.Shared.First(element =>
+                    element.Key == Properties.Settings.Default.ExtendedPropertyName_OutlookIDInGoogleItem);
+                return result?.Value;
+            }
+            catch (InvalidOperationException)
+            {
                 return null;
-            else
-                return result.Value;
+            }
         }
 
-        internal static void SetOutlookID(AtomEntry item, string outlookID)
+        internal static void SetOutlookID(Event item, string outlookID)
         {
-            item.ExtensionElements.Add(new ExtendedProperty(outlookID, Properties.Settings.Default.ExtendedPropertyName_OutlookIDInGoogleItem));
+            if (item.ExtendedProperties == null)
+            {
+                item.ExtendedProperties = new Event.ExtendedPropertiesData();
+            }
+            if (item.ExtendedProperties.Shared == null)
+            {
+                item.ExtendedProperties.Shared = new Dictionary<string, string>();
+            }
+            item.ExtendedProperties.Shared.Add(Properties.Settings.Default.ExtendedPropertyName_OutlookIDInGoogleItem, outlookID);
         }
 
-        internal static void RemoveOutlookID(AtomEntry googleItem)
+        internal static void RemoveOutlookID(Event googleItem)
         {
             var outlookIDs =
-                (from outlookIDProperty in googleItem.ExtensionElements
+                (from outlookIDProperty in googleItem.ExtendedProperties.Shared
                 where
-                    outlookIDProperty is ExtendedProperty &&
-                    ((ExtendedProperty)outlookIDProperty).Name == Properties.Settings.Default.ExtendedPropertyName_OutlookIDInGoogleItem
-                select outlookIDProperty).ToList<IExtensionElementFactory>();
+                    outlookIDProperty.Key == Properties.Settings.Default.ExtendedPropertyName_OutlookIDInGoogleItem
+                select outlookIDProperty).ToList();
             foreach (var outlookID in outlookIDs)
-                googleItem.ExtensionElements.Remove(outlookID);
+                googleItem.ExtendedProperties.Shared.Remove(outlookID);
         }
 
         public static T TryDo<T>(Func<T> function)

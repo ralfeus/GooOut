@@ -29,16 +29,14 @@ namespace R.GoogleOutlookSync
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.Windows.Forms.Label label5;
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(SettingsForm));
             System.Windows.Forms.GroupBox grpGoogleSettings;
+            System.Windows.Forms.Label label2;
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(SettingsForm));
             System.Windows.Forms.GroupBox grpOutlookSettings;
             System.Windows.Forms.Label label11;
             System.Windows.Forms.Label label10;
-            this.label2 = new System.Windows.Forms.Label();
-            this.label3 = new System.Windows.Forms.Label();
-            this.UserName = new System.Windows.Forms.TextBox();
-            this.Password = new System.Windows.Forms.TextBox();
+            this.txtGoogleAccountName = new System.Windows.Forms.TextBox();
+            this.lnkGoogleLogon = new System.Windows.Forms.LinkLabel();
             this.cmbOutlookProfiles = new System.Windows.Forms.ComboBox();
             this.lnkCalendarFolder = new System.Windows.Forms.LinkLabel();
             this.syncOptionBox = new System.Windows.Forms.CheckedListBox();
@@ -65,7 +63,6 @@ namespace R.GoogleOutlookSync
             this.btSyncCalendar = new System.Windows.Forms.CheckBox();
             this.btSyncContacts = new System.Windows.Forms.CheckBox();
             this.panel1 = new System.Windows.Forms.Panel();
-            this.tbSyncProfile = new System.Windows.Forms.TextBox();
             this.toolTip = new System.Windows.Forms.ToolTip(this.components);
             this.resetMatchesLinkLabel = new System.Windows.Forms.LinkLabel();
             this.hideButton = new System.Windows.Forms.Button();
@@ -100,8 +97,8 @@ namespace R.GoogleOutlookSync
             this.pnlHelp = new System.Windows.Forms.Panel();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.lnkBuyNow = new System.Windows.Forms.LinkLabel();
-            label5 = new System.Windows.Forms.Label();
             grpGoogleSettings = new System.Windows.Forms.GroupBox();
+            label2 = new System.Windows.Forms.Label();
             grpOutlookSettings = new System.Windows.Forms.GroupBox();
             label11 = new System.Windows.Forms.Label();
             label10 = new System.Windows.Forms.Label();
@@ -122,42 +119,32 @@ namespace R.GoogleOutlookSync
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
             // 
-            // label5
-            // 
-            resources.ApplyResources(label5, "label5");
-            label5.Name = "label5";
-            // 
             // grpGoogleSettings
             // 
+            grpGoogleSettings.Controls.Add(label2);
+            grpGoogleSettings.Controls.Add(this.txtGoogleAccountName);
+            grpGoogleSettings.Controls.Add(this.lnkGoogleLogon);
             resources.ApplyResources(grpGoogleSettings, "grpGoogleSettings");
-            grpGoogleSettings.Controls.Add(this.label2);
-            grpGoogleSettings.Controls.Add(this.label3);
-            grpGoogleSettings.Controls.Add(this.UserName);
-            grpGoogleSettings.Controls.Add(this.Password);
             grpGoogleSettings.Name = "grpGoogleSettings";
             grpGoogleSettings.TabStop = false;
             // 
             // label2
             // 
-            resources.ApplyResources(this.label2, "label2");
-            this.label2.Name = "label2";
+            resources.ApplyResources(label2, "label2");
+            label2.Name = "label2";
             // 
-            // label3
+            // txtGoogleAccountName
             // 
-            resources.ApplyResources(this.label3, "label3");
-            this.label3.Name = "label3";
+            resources.ApplyResources(this.txtGoogleAccountName, "txtGoogleAccountName");
+            this.txtGoogleAccountName.Name = "txtGoogleAccountName";
+            this.txtGoogleAccountName.TextChanged += new System.EventHandler(this.txtGoogleAccountName_TextChanged);
             // 
-            // UserName
+            // lnkGoogleLogon
             // 
-            resources.ApplyResources(this.UserName, "UserName");
-            this.UserName.Name = "UserName";
-            this.UserName.TextChanged += new System.EventHandler(this.UserName_TextChanged);
-            // 
-            // Password
-            // 
-            resources.ApplyResources(this.Password, "Password");
-            this.Password.Name = "Password";
-            this.Password.TextChanged += new System.EventHandler(this.Password_TextChanged);
+            resources.ApplyResources(this.lnkGoogleLogon, "lnkGoogleLogon");
+            this.lnkGoogleLogon.Name = "lnkGoogleLogon";
+            this.lnkGoogleLogon.TabStop = true;
+            this.lnkGoogleLogon.Click += new System.EventHandler(this.lnkGoogleLogon_Click);
             // 
             // grpOutlookSettings
             // 
@@ -345,11 +332,11 @@ namespace R.GoogleOutlookSync
             // 
             // groupBox2
             // 
-            resources.ApplyResources(this.groupBox2, "groupBox2");
             this.groupBox2.Controls.Add(this.btSyncCalendar);
             this.groupBox2.Controls.Add(this.btSyncContacts);
             this.groupBox2.Controls.Add(this.panel1);
             this.groupBox2.Controls.Add(this.syncOptionBox);
+            resources.ApplyResources(this.groupBox2, "groupBox2");
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.TabStop = false;
             // 
@@ -374,12 +361,6 @@ namespace R.GoogleOutlookSync
             resources.ApplyResources(this.panel1, "panel1");
             this.panel1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.panel1.Name = "panel1";
-            // 
-            // tbSyncProfile
-            // 
-            resources.ApplyResources(this.tbSyncProfile, "tbSyncProfile");
-            this.tbSyncProfile.Name = "tbSyncProfile";
-            this.tbSyncProfile.TextChanged += new System.EventHandler(this.tbSyncProfile_TextChanged);
             // 
             // resetMatchesLinkLabel
             // 
@@ -432,9 +413,9 @@ namespace R.GoogleOutlookSync
             // 
             // pnlGeneral
             // 
+            this.pnlGeneral.Controls.Add(this.groupBox2);
             this.pnlGeneral.Controls.Add(grpOutlookSettings);
             this.pnlGeneral.Controls.Add(grpGoogleSettings);
-            this.pnlGeneral.Controls.Add(this.groupBox2);
             resources.ApplyResources(this.pnlGeneral, "pnlGeneral");
             this.pnlGeneral.Name = "pnlGeneral";
             // 
@@ -637,8 +618,6 @@ namespace R.GoogleOutlookSync
             this.Controls.Add(this.pnlAdvanced);
             this.Controls.Add(this.pnlProxy);
             this.Controls.Add(this.lnkBuyNow);
-            this.Controls.Add(this.tbSyncProfile);
-            this.Controls.Add(label5);
             this.Controls.Add(this.tsTabs);
             this.Controls.Add(this.pnlHelp);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
@@ -681,11 +660,6 @@ namespace R.GoogleOutlookSync
         }
 
         #endregion
-
-        private System.Windows.Forms.TextBox Password;
-        private System.Windows.Forms.TextBox UserName;
-        private System.Windows.Forms.Label label3;
-        private System.Windows.Forms.Label label2;
         private System.Windows.Forms.CheckedListBox syncOptionBox;
         internal System.Windows.Forms.NotifyIcon notifyIcon;
         private System.Windows.Forms.NumericUpDown autoSyncInterval;
@@ -703,7 +677,6 @@ namespace R.GoogleOutlookSync
         private System.Windows.Forms.ToolStripMenuItem mniSync;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
         private System.Windows.Forms.ToolStripMenuItem toolStripMenuItem5;
-        private System.Windows.Forms.TextBox tbSyncProfile;
         private System.Windows.Forms.ToolTip toolTip;
         private System.Windows.Forms.Panel panel1;
         private System.Windows.Forms.LinkLabel resetMatchesLinkLabel;
@@ -747,6 +720,8 @@ namespace R.GoogleOutlookSync
         private System.Windows.Forms.LinkLabel lnkSendLogFile;
         private System.Windows.Forms.LinkLabel lnkCalendarFolder;
         private System.Windows.Forms.ComboBox cmbOutlookProfiles;
+        private System.Windows.Forms.LinkLabel lnkGoogleLogon;
+        private System.Windows.Forms.TextBox txtGoogleAccountName;
     }
 }
 

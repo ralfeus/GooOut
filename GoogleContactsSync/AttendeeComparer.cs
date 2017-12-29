@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Google.GData.Extensions;
+﻿using System.Collections.Generic;
 using Outlook = Microsoft.Office.Interop.Outlook;
 using System.Runtime.InteropServices;
+using Google.Apis.Calendar.v3.Data;
 
 namespace R.GoogleOutlookSync
 {
@@ -33,20 +30,20 @@ namespace R.GoogleOutlookSync
 
         #endregion
 
-        internal static bool Equals(ExtensionCollection<Who> googleAttendees, Outlook.Recipients outlookAttendees)
+        internal static bool Equals(IList<EventAttendee> googleAttendees, Outlook.Recipients outlookAttendees)
         {
             /// if Google item has recipients and their quantity is different than Outlook's one there is no reason to compare them
-            if ((googleAttendees.Count > 1) && (googleAttendees.Count != outlookAttendees.Count))
-                return false;
-            /// if Outlook item has no recipients (we verified above Google item hasn't) return true immediately
-            if (outlookAttendees.Count == 0)
-                return true;
+            if ((googleAttendees == null) || (googleAttendees.Count == 0))
+            {
+                return outlookAttendees.Count == 0;
+            }
 
             foreach (Outlook.Recipient outlookAttendee in outlookAttendees)
             {
                 try
                 {
-                    if ((outlookAttendee.Address == "Unknown") || ((Outlook.OlMeetingRecipientType)outlookAttendee.Type == Outlook.OlMeetingRecipientType.olOrganizer))
+                    if (((Outlook.OlMeetingRecipientType)outlookAttendee.Type == Outlook.OlMeetingRecipientType.olOrganizer) ||
+                        !Utilities.SMTPAddressPattern.IsMatch(outlookAttendee.Address))
                         continue;
                     var equal = false;
                     foreach (var googleAttendee in googleAttendees)
@@ -103,12 +100,17 @@ namespace R.GoogleOutlookSync
         //    return true;
         //}
 
-        private static bool Equals(Who googleRecipient, Outlook.Recipient outlookRecipient)
+        private static bool Equals(EventAttendee googleRecipient, Outlook.Recipient outlookRecipient)
         {
             return
-                (googleRecipient.Email == outlookRecipient.Address) &&
-                (googleRecipient.Rel == ConvertTo.Google((Outlook.OlMeetingRecipientType)outlookRecipient.Type)) &&
-                (googleRecipient.Attendee_Status.Value == ConvertTo.Google(outlookRecipient.MeetingResponseStatus).Value);
+                googleRecipient.Email.Equals(outlookRecipient.Address, System.StringComparison.InvariantCultureIgnoreCase) &&
+                (
+                    (googleRecipient.Organizer.HasValue && googleRecipient.Organizer.Value && (Outlook.OlMeetingRecipientType)outlookRecipient.Type == Outlook.OlMeetingRecipientType.olOrganizer) ||
+                    (googleRecipient.Optional.HasValue && googleRecipient.Optional.Value && (Outlook.OlMeetingRecipientType)outlookRecipient.Type == Outlook.OlMeetingRecipientType.olOptional) ||
+                    (googleRecipient.Resource.HasValue && googleRecipient.Resource.Value && (Outlook.OlMeetingRecipientType)outlookRecipient.Type == Outlook.OlMeetingRecipientType.olResource) ||
+                    ((Outlook.OlMeetingRecipientType)outlookRecipient.Type == Outlook.OlMeetingRecipientType.olRequired)
+                ) && 
+                (googleRecipient.ResponseStatus == ConvertTo.GoogleResponseStatus(outlookRecipient.MeetingResponseStatus));
         }
 
         //private static bool Equals(Who googleRecipient, vbMAPI_Recipient outlookRecipient)

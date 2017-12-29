@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using Google.Apis.Calendar.v3.Data;
 using Microsoft.Office.Interop.Outlook;
-using Google.GData.Extensions;
-using Google.GData.Calendar;
 
 namespace R.GoogleOutlookSync
 {
@@ -15,46 +10,25 @@ namespace R.GoogleOutlookSync
         /// </summary>
         /// <param name="recipientType">Outlook's recipient type</param>
         /// <returns></returns>
-        internal static string Google(OlMeetingRecipientType recipientType)
+        internal static EventAttendee GoogleRecipientType(EventAttendee attendee, OlMeetingRecipientType recipientType)
         {
             switch (recipientType)
             {
                 case OlMeetingRecipientType.olOptional:
-                    return "http://schemas.google.com/g/2005#event.optional";
+                    attendee.Optional = true;
+                    break;
                 case OlMeetingRecipientType.olOrganizer:
-                    return "http://schemas.google.com/g/2005#event.organizer";
-                case OlMeetingRecipientType.olRequired:
-                    return "http://schemas.google.com/g/2005#event.required";
+                    attendee.Organizer = true;
+                    break;
                 case OlMeetingRecipientType.olResource:
+                    attendee.Resource = true;
+                    break;
+                case OlMeetingRecipientType.olRequired:
                 default:
-                    return "http://schemas.google.com/g/2005#event.attendee";
-            }
-        }
-
-        /// <summary>
-        /// Convert invitee response status from Outlook to Google
-        /// </summary>
-        /// <param name="outlookStatus"></param>
-        /// <returns></returns>
-        internal static Who.AttendeeStatus Google(OlResponseStatus outlookStatus)
-        {
-            var status = new Who.AttendeeStatus();
-            switch (outlookStatus)
-            {
-                case OlResponseStatus.olResponseAccepted:
-                    status.Value = Who.AttendeeStatus.EVENT_ACCEPTED;
-                    break;
-                case OlResponseStatus.olResponseDeclined:
-                    status.Value = Who.AttendeeStatus.EVENT_DECLINED;
-                    break;
-                case OlResponseStatus.olResponseTentative:
-                    status.Value = Who.AttendeeStatus.EVENT_TENTATIVE;
-                    break;
-                default:
-                    status.Value = Who.AttendeeStatus.EVENT_INVITED;
+                    attendee.Optional = attendee.Organizer = attendee.Resource = false;
                     break;
             }
-            return status;
+            return attendee;
         }
 
         /// <summary>
@@ -63,18 +37,43 @@ namespace R.GoogleOutlookSync
         /// <param name="googleRel">Google's recipient's relation</param>
         /// <returns></returns>
         /// Probably it will be necessary to replace string with Attendee_Type type 
-        internal static OlMeetingRecipientType Outlook(string rel)
+        internal static OlMeetingRecipientType OutlookRecipientType(EventAttendee attendee)
         {
-            switch (rel)
-            {
-                case "http://schemas.google.com/g/2005#event.optional":
-                    return OlMeetingRecipientType.olOptional;
-                case "http://schemas.google.com/g/2005#event.organizer":
-                    return OlMeetingRecipientType.olOrganizer;
-                case "http://schemas.google.com/g/2005#event.required":
-                default:
+            if (attendee.Optional.HasValue && attendee.Optional.Value) {
+                return OlMeetingRecipientType.olOptional;
+            } else if (attendee.Organizer.HasValue && attendee.Organizer.Value) {
+                return OlMeetingRecipientType.olOrganizer;
+            } else if (attendee.Resource.HasValue && attendee.Resource.Value) {
+                return OlMeetingRecipientType.olResource;
+            } else { 
                     return OlMeetingRecipientType.olRequired;
             }
+        }
+
+        /// <summary>
+        /// Convert invitee response status from Outlook to Google
+        /// </summary>
+        /// <param name="outlookStatus"></param>
+        /// <returns></returns>
+        internal static string GoogleResponseStatus(OlResponseStatus outlookStatus)
+        {
+            string status;
+            switch (outlookStatus)
+            {
+                case OlResponseStatus.olResponseAccepted:
+                    status = "accepted";
+                    break;
+                case OlResponseStatus.olResponseDeclined:
+                    status = "declined";
+                    break;
+                case OlResponseStatus.olResponseTentative:
+                    status = "tentative";
+                    break;
+                default:
+                    status = "needsAction";
+                    break;
+            }
+            return status;
         }
 
         /// <summary>
@@ -82,15 +81,15 @@ namespace R.GoogleOutlookSync
         /// </summary>
         /// <param name="googleStatus"></param>
         /// <returns></returns>
-        internal static OlResponseStatus Outlook(Who.AttendeeStatus googleStatus)
+        internal static OlResponseStatus OutlookResponseStatus(string googleStatus)
         {
-            switch (googleStatus.Value)
+            switch (googleStatus)
             {
-                case Who.AttendeeStatus.EVENT_ACCEPTED:
+                case "accepted":
                     return OlResponseStatus.olResponseAccepted;
-                case Who.AttendeeStatus.EVENT_DECLINED:
+                case "declined":
                     return OlResponseStatus.olResponseDeclined;
-                case Who.AttendeeStatus.EVENT_TENTATIVE:
+                case "tentative":
                     return OlResponseStatus.olResponseTentative;
                 default:
                     return OlResponseStatus.olResponseNotResponded;
@@ -105,14 +104,14 @@ namespace R.GoogleOutlookSync
         /// </summary>
         /// <param name="outlookBusyStatus"></param>
         /// <returns></returns>
-        internal static EventEntry.Transparency Google(OlBusyStatus outlookBusyStatus)
+        internal static string GoogleAvailability(OlBusyStatus outlookBusyStatus)
         {
             switch (outlookBusyStatus)
             {
                 case OlBusyStatus.olFree:
-                    return EventEntry.Transparency.TRANSPARENT;
+                    return "transparent";
                 default:
-                    return EventEntry.Transparency.OPAQUE;
+                    return "opaque";
             }
         }
 
@@ -121,23 +120,23 @@ namespace R.GoogleOutlookSync
         /// </summary>
         /// <param name="googleBusyStatus"></param>
         /// <returns></returns>
-        internal static OlBusyStatus Outlook(EventEntry.Transparency googleBusyStatus)
+        internal static OlBusyStatus OutlookAvailability(string googleTransparency)
         {
-            switch (googleBusyStatus.Value)
+            switch (googleTransparency)
             {
-                case EventEntry.Transparency.OPAQUE_VALUE:
+                case "opaque":
                     return OlBusyStatus.olBusy;
-                default:
+                default: // "transparent"
                     return OlBusyStatus.olFree;
             }
         }
 
         ///// <summary>
-        ///// Convert any calendar event to Google's EventEntry
+        ///// Convert any calendar event to Google's Event
         ///// </summary>
         ///// <param name="calendarEvent"></param>
         ///// <returns></returns>
-        //internal static EventEntry Google(CalendarEvent calendarEvent)
+        //internal static Event Google(CalendarEvent calendarEvent)
         //{
         //    return calendarEvent.ToGoogle();
         //}
@@ -157,18 +156,18 @@ namespace R.GoogleOutlookSync
         /// </summary>
         /// <param name="olSensitivity"></param>
         /// <returns></returns>
-        internal static EventEntry.Visibility Google(OlSensitivity outlookVisibility)
+        internal static string GoogleVisibility(OlSensitivity outlookVisibility)
         {
             switch (outlookVisibility)
             {
                 case OlSensitivity.olNormal:
-                    return EventEntry.Visibility.DEFAULT;
+                    return "default";
                 case OlSensitivity.olPrivate:
-                    return EventEntry.Visibility.PRIVATE;
+                    return "private";
                 case OlSensitivity.olConfidential:
-                    return EventEntry.Visibility.CONFIDENTIAL;
+                    return "confidential";
                 default:
-                    return EventEntry.Visibility.DEFAULT;
+                    return "public";
             }
         }
 
@@ -177,15 +176,15 @@ namespace R.GoogleOutlookSync
         /// </summary>
         /// <param name="googleVisibility"></param>
         /// <returns></returns>
-        internal static OlSensitivity Outlook(EventEntry.Visibility googleVisibility)
+        internal static OlSensitivity OutlookVisibility(string googleVisibility)
         {
-            switch (googleVisibility.Value)
+            switch (googleVisibility)
             {
-                case EventEntry.Visibility.CONFIDENTIAL_VALUE:
+                case "confidential":
                     return OlSensitivity.olConfidential;
-                case EventEntry.Visibility.PRIVATE_VALUE:
+                case "private":
                     return OlSensitivity.olPrivate;
-                case EventEntry.Visibility.PUBLIC_VALUE:
+                case "public":
                 default:
                     return OlSensitivity.olNormal;
             }

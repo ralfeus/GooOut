@@ -4,11 +4,11 @@ using System.Text;
 using System.Drawing;
 using System.Net;
 using System.IO;
-using Google.GData.Contacts;
+//using Google.GData.Contacts;
 using Outlook = Microsoft.Office.Interop.Outlook;
 using System.Threading;
 using System.Collections.ObjectModel;
-using Google.Contacts;
+//using Google.Contacts;
 using Regexp = System.Text.RegularExpressions;
 using System.Windows.Forms;
 using System.Resources;
@@ -33,68 +33,68 @@ namespace R.GoogleOutlookSync
             return stream.ToArray();
         }
 
-        public static bool HasPhoto(Contact googleContact)
-        {
-            if (googleContact.PhotoEtag == null)
-                return false;
-            return true;
-        }
+        //public static bool HasPhoto(Contact googleContact)
+        //{
+        //    if (googleContact.PhotoEtag == null)
+        //        return false;
+        //    return true;
+        //}
         public static bool HasPhoto(Outlook.ContactItem outlookContact)
         {
             return outlookContact.HasPicture;
         }
 
-        public static bool SaveGooglePhoto(Syncronizer sync, Contact googleContact, Image image)
-        {
-            if (googleContact.ContactEntry.PhotoUri == null)
-                throw new Exception("Must reload contact from google.");
+        //public static bool SaveGooglePhoto(Syncronizer sync, Contact googleContact, Image image)
+        //{
+        //    if (googleContact.ContactEntry.PhotoUri == null)
+        //        throw new Exception("Must reload contact from google.");
 
-            try
-            {
-                WebClient client = new WebClient();
-                client.Headers.Add(HttpRequestHeader.Authorization, "GoogleLogin auth=" + sync.ContactsRequest.Service.QueryClientLoginToken());
-                client.Headers.Add(HttpRequestHeader.ContentType, "image/*");
-                Bitmap pic = new Bitmap(image);
-                Stream s = client.OpenWrite(googleContact.ContactEntry.PhotoUri.AbsoluteUri, "PUT");
-                byte[] bytes = BitmapToBytes(pic);
+        //    try
+        //    {
+        //        WebClient client = new WebClient();
+        //        client.Headers.Add(HttpRequestHeader.Authorization, "GoogleLogin auth=" + sync.ContactsRequest.Service.QueryClientLoginToken());
+        //        client.Headers.Add(HttpRequestHeader.ContentType, "image/*");
+        //        Bitmap pic = new Bitmap(image);
+        //        Stream s = client.OpenWrite(googleContact.ContactEntry.PhotoUri.AbsoluteUri, "PUT");
+        //        byte[] bytes = BitmapToBytes(pic);
 
-                s.Write(bytes, 0, bytes.Length);
-                s.Flush();
-                s.Close();
-                s.Dispose();
-                client.Dispose();
-                pic.Dispose();
-            }
-            catch
-            {
-                return false;
-            }
-            return true;
-        }
-        public static Image GetGooglePhoto(Syncronizer sync, Contact googleContact)
-        {
-            if (!HasPhoto(googleContact))
-                return null;
+        //        s.Write(bytes, 0, bytes.Length);
+        //        s.Flush();
+        //        s.Close();
+        //        s.Dispose();
+        //        client.Dispose();
+        //        pic.Dispose();
+        //    }
+        //    catch
+        //    {
+        //        return false;
+        //    }
+        //    return true;
+        //}
+        //public static Image GetGooglePhoto(Syncronizer sync, Contact googleContact)
+        //{
+        //    if (!HasPhoto(googleContact))
+        //        return null;
 
-            try
-            {
-                WebClient client = new WebClient();
-                client.Headers.Add(HttpRequestHeader.Authorization, "GoogleLogin auth=" + sync.ContactsRequest.Service.QueryClientLoginToken());
-                Stream stream = client.OpenRead(googleContact.PhotoUri.AbsoluteUri);
-                BinaryReader reader = new BinaryReader(stream);
-                Image image = Image.FromStream(stream);
-                reader.Close();
-                stream.Close();
-                stream.Dispose();
-                client.Dispose();
+        //    try
+        //    {
+        //        WebClient client = new WebClient();
+        //        client.Headers.Add(HttpRequestHeader.Authorization, "GoogleLogin auth=" + sync.ContactsRequest.Service.QueryClientLoginToken());
+        //        Stream stream = client.OpenRead(googleContact.PhotoUri.AbsoluteUri);
+        //        BinaryReader reader = new BinaryReader(stream);
+        //        Image image = Image.FromStream(stream);
+        //        reader.Close();
+        //        stream.Close();
+        //        stream.Dispose();
+        //        client.Dispose();
 
-                return image;
-            }
-            catch
-            {
-                return null;
-            }
-        }
+        //        return image;
+        //    }
+        //    catch
+        //    {
+        //        return null;
+        //    }
+        //}
 
         public static bool SetOutlookPhoto(Outlook.ContactItem outlookContact, string fullImagePath)
         {
@@ -206,110 +206,110 @@ namespace R.GoogleOutlookSync
             catch { }
         }
 
-        public static bool ContainsGroup(Syncronizer sync, Contact googleContact, string groupName)
-        {
-            Group group = sync.GetGoogleGroupByName(groupName);
-            if (group == null)
-                return false;
-            return ContainsGroup(googleContact, group);
-        }
-        public static bool ContainsGroup(Contact googleContact, Group group)
-        {
-            foreach (GroupMembership m in googleContact.GroupMembership)
-            {
-                if (m.HRef == group.GroupEntry.Id.AbsoluteUri)
-                    return true;
-            }
-            return false;
-        }
-        public static bool ContainsGroup(Outlook.ContactItem outlookContact, string group)
-        {
-            if (outlookContact.Categories == null)
-                return false;
+        //public static bool ContainsGroup(Syncronizer sync, Contact googleContact, string groupName)
+        //{
+        //    Group group = sync.GetGoogleGroupByName(groupName);
+        //    if (group == null)
+        //        return false;
+        //    return ContainsGroup(googleContact, group);
+        //}
+        //public static bool ContainsGroup(Contact googleContact, Group group)
+        //{
+        //    foreach (GroupMembership m in googleContact.GroupMembership)
+        //    {
+        //        if (m.HRef == group.GroupEntry.Id.AbsoluteUri)
+        //            return true;
+        //    }
+        //    return false;
+        //}
+        //public static bool ContainsGroup(Outlook.ContactItem outlookContact, string group)
+        //{
+        //    if (outlookContact.Categories == null)
+        //        return false;
 
-            return outlookContact.Categories.Contains(group);
-        }
+        //    return outlookContact.Categories.Contains(group);
+        //}
 
-        public static Collection<Group> GetGoogleGroups(Syncronizer sync, Contact googleContact)
-        {
-            int c = googleContact.GroupMembership.Count;
-            Collection<Group> groups = new Collection<Group>();
-            string id;
-            Group group;
-            for (int i = 0; i < c; i++)
-            {
-                id = googleContact.GroupMembership[i].HRef;
-                group = sync.GetGoogleGroupById(id);
+        //public static Collection<Group> GetGoogleGroups(Syncronizer sync, Contact googleContact)
+        //{
+        //    int c = googleContact.GroupMembership.Count;
+        //    Collection<Group> groups = new Collection<Group>();
+        //    string id;
+        //    Group group;
+        //    for (int i = 0; i < c; i++)
+        //    {
+        //        id = googleContact.GroupMembership[i].HRef;
+        //        group = sync.GetGoogleGroupById(id);
 
-                groups.Add(group);
-            }
-            return groups;
-        }
-        public static void AddGoogleGroup(Contact googleContact, Group group)
-        {
-            if (ContainsGroup(googleContact, group))
-                return;
+        //        groups.Add(group);
+        //    }
+        //    return groups;
+        //}
+        //public static void AddGoogleGroup(Contact googleContact, Group group)
+        //{
+        //    if (ContainsGroup(googleContact, group))
+        //        return;
 
-            GroupMembership m = new GroupMembership();
-            m.HRef = group.GroupEntry.Id.AbsoluteUri;
-            googleContact.GroupMembership.Add(m);
-        }
-        public static void RemoveGoogleGroup(Contact googleContact, Group group)
-        {
-            if (!ContainsGroup(googleContact, group))
-                return;
+        //    GroupMembership m = new GroupMembership();
+        //    m.HRef = group.GroupEntry.Id.AbsoluteUri;
+        //    googleContact.GroupMembership.Add(m);
+        //}
+        //public static void RemoveGoogleGroup(Contact googleContact, Group group)
+        //{
+        //    if (!ContainsGroup(googleContact, group))
+        //        return;
 
-            // TODO: broken. removes group membership but does not remove contact
-            // from group in the end.
+        //    // TODO: broken. removes group membership but does not remove contact
+        //    // from group in the end.
 
-            // look for id
-            GroupMembership mem;
-            for (int i = 0; i < googleContact.GroupMembership.Count; i++)
-            {
-                mem = googleContact.GroupMembership[i];
-                if (mem.HRef == group.GroupEntry.Id.AbsoluteUri)
-                {
-                    googleContact.GroupMembership.Remove(mem);
-                    return;
-                }
-            }
-            throw new Exception("Did not find group");
-        }
+        //    // look for id
+        //    GroupMembership mem;
+        //    for (int i = 0; i < googleContact.GroupMembership.Count; i++)
+        //    {
+        //        mem = googleContact.GroupMembership[i];
+        //        if (mem.HRef == group.GroupEntry.Id.AbsoluteUri)
+        //        {
+        //            googleContact.GroupMembership.Remove(mem);
+        //            return;
+        //        }
+        //    }
+        //    throw new Exception("Did not find group");
+        //}
 
-        public static string[] GetOutlookGroups(string outlookContactCategories)
-        {
-            if (outlookContactCategories == null)
-                return new string[] { };
+        //public static string[] GetOutlookGroups(string outlookContactCategories)
+        //{
+        //    if (outlookContactCategories == null)
+        //        return new string[] { };
 
-            char[] listseparator = System.Globalization.CultureInfo.CurrentCulture.TextInfo.ListSeparator.ToCharArray();
-            string[] categories = outlookContactCategories.Split(listseparator);
-            for (int i = 0; i < categories.Length; i++)
-            {
-                categories[i] = categories[i].Trim();
-            }
-            return categories;
-        }
-        public static void AddOutlookGroup(Outlook.ContactItem outlookContact, string group)
-        {
-            if (ContainsGroup(outlookContact, group))
-                return;
+        //    char[] listseparator = System.Globalization.CultureInfo.CurrentCulture.TextInfo.ListSeparator.ToCharArray();
+        //    string[] categories = outlookContactCategories.Split(listseparator);
+        //    for (int i = 0; i < categories.Length; i++)
+        //    {
+        //        categories[i] = categories[i].Trim();
+        //    }
+        //    return categories;
+        //}
+        //public static void AddOutlookGroup(Outlook.ContactItem outlookContact, string group)
+        //{
+        //    if (ContainsGroup(outlookContact, group))
+        //        return;
 
-            // append
-            if (outlookContact.Categories == null)
-                outlookContact.Categories = "";
-            if (outlookContact.Categories != "")
-                outlookContact.Categories += ", " + group;
-            else
-                outlookContact.Categories += group;
-        }
-        public static void RemoveOutlookGroup(Outlook.ContactItem outlookContact, string group)
-        {
-            if (!ContainsGroup(outlookContact, group))
-                return;
+        //    // append
+        //    if (outlookContact.Categories == null)
+        //        outlookContact.Categories = "";
+        //    if (outlookContact.Categories != "")
+        //        outlookContact.Categories += ", " + group;
+        //    else
+        //        outlookContact.Categories += group;
+        //}
+        //public static void RemoveOutlookGroup(Outlook.ContactItem outlookContact, string group)
+        //{
+        //    if (!ContainsGroup(outlookContact, group))
+        //        return;
 
-            outlookContact.Categories = outlookContact.Categories.Replace(", " + group, "");
-            outlookContact.Categories = outlookContact.Categories.Replace(group, "");
-        }
+        //    outlookContact.Categories = outlookContact.Categories.Replace(", " + group, "");
+        //    outlookContact.Categories = outlookContact.Categories.Replace(group, "");
+        //}
 
         //ToDo: Workaround to save google Content is also not working, beause of error when closing the StreamWriter
         //public static bool SaveGoogleNoteContent(Syncronizer sync, Google.Documents.Document updated, Google.Documents.Document googleNote)

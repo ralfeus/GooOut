@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Google.GData.Calendar;
+﻿using System.Collections.Generic;
 using Outlook = Microsoft.Office.Interop.Outlook;
 using System.Runtime.InteropServices;
+using Google.Apis.Calendar.v3.Data;
 
 namespace R.GoogleOutlookSync
 {
@@ -37,33 +34,38 @@ namespace R.GoogleOutlookSync
 
         #endregion
 
-        internal static bool Equals(EventEntry googleException, Outlook.Exception outlookException)
+        internal static bool Equals(Event googleException, Outlook.Exception outlookException)
         {
-            bool googleExceptionDeleted = googleException.Status.Value == EventEntry.EventStatus.CANCELED_VALUE;
+            bool googleExceptionDeleted = googleException.Status == "cancelled";
             bool exceptionEventEqual;
             if (outlookException.Deleted)
                 exceptionEventEqual = true;
             else
-                exceptionEventEqual = 
-                    googleException.Times[0].StartTime == outlookException.AppointmentItem.Start &&
-                    googleException.Times[0].EndTime == outlookException.AppointmentItem.End &&
-                    googleException.Times[0].AllDay == outlookException.AppointmentItem.AllDayEvent &&
+                exceptionEventEqual = outlookException.AppointmentItem.AllDayEvent ?
+                    (
+                        googleException.Start.Date == outlookException.AppointmentItem.Start.ToString("yyyy-MM-dd") &&
+                        googleException.End.Date == outlookException.AppointmentItem.End.ToString("yyyy-MM-dd")
+                    ) :
+                    (
+                        googleException.Start.DateTime.Value == outlookException.AppointmentItem.Start &&
+                        googleException.End.DateTime.Value == outlookException.AppointmentItem.End
+                    );
                     EventComparer.Equals(googleException, outlookException.AppointmentItem);
             return
-                googleException.OriginalEvent.OriginalStartTime.StartTime.Date == outlookException.OriginalDate.Date &&
+                googleException.OriginalStartTime.DateTime == outlookException.OriginalDate.Date &&
                 googleExceptionDeleted == outlookException.Deleted &&
                 exceptionEventEqual;
         }
 
-        internal static bool Equals(List<EventEntry> googleExceptions, Outlook.Exceptions outlookExceptions)
+        internal static bool Equals(List<Event> googleExceptions, Outlook.Exceptions outlookExceptions)
         {
-            var tmpGoogleExceptions = new List<EventEntry>(googleExceptions);
+            var tmpGoogleExceptions = new List<Event>(googleExceptions);
             foreach (Outlook.Exception outlookException in outlookExceptions)
             {
                 try
                 {
                     var found = false;
-                    foreach (var googleException in new List<EventEntry>(tmpGoogleExceptions))
+                    foreach (var googleException in new List<Event>(tmpGoogleExceptions))
                     {
                         if (Equals(googleException, outlookException))
                         {
@@ -83,7 +85,7 @@ namespace R.GoogleOutlookSync
             return tmpGoogleExceptions.Count == 0;
         }
 
-        internal static bool Contains(List<EventEntry> googleExceptions, Outlook.Exception outlookException)
+        internal static bool Contains(List<Event> googleExceptions, Outlook.Exception outlookException)
         {
             foreach (var googleException in googleExceptions)
                 if (Equals(googleException, outlookException))
@@ -91,7 +93,7 @@ namespace R.GoogleOutlookSync
             return false;
         }
 
-        internal static bool Contains(Outlook.Exceptions outlookExceptions, EventEntry googleException)
+        internal static bool Contains(Outlook.Exceptions outlookExceptions, Event googleException)
         {
             foreach (Outlook.Exception outlookException in outlookExceptions)
                 try

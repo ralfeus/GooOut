@@ -6,16 +6,16 @@
       <Value Profile="(Default)">Software\Rasoft\GoogleOutlookSync</Value>
     </Setting>
     <Setting Name="CalendarSettings_RangeBefore" Type="System.String" Scope="User">
-      <Value Profile="(Default)">CalendarRangeDaysBefore</Value>
+      <Value Profile="(Default)">CalendarDaysBefore</Value>
     </Setting>
     <Setting Name="CalendarSettings_RangeAfter" Type="System.String" Scope="User">
-      <Value Profile="(Default)">CalendarRangeDaysAfter</Value>
+      <Value Profile="(Default)">CalendarDaysAfter</Value>
     </Setting>
     <Setting Name="CalendarSettings_CalendarName" Type="System.String" Scope="User">
       <Value Profile="(Default)">CalendarName</Value>
     </Setting>
     <Setting Name="GoogleUrl_Calendar" Type="System.String" Scope="User">
-      <Value Profile="(Default)">http://www.google.com/calendar/feeds/default/owncalendars/full</Value>
+      <Value Profile="(Default)">primary</Value>
     </Setting>
     <Setting Name="ExtendedPropertyName_GoogleIDInOutlookItem" Type="System.String" Scope="User">
       <Value Profile="(Default)">GoogleItemID</Value>
@@ -39,7 +39,7 @@
       <Value Profile="(Default)">http://www.gooout.net</Value>
     </Setting>
     <Setting Name="IsNotRegistered" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">True</Value>
+      <Value Profile="(Default)">False</Value>
     </Setting>
     <Setting Name="URL_Update" Type="System.String" Scope="User">
       <Value Profile="(Default)">http://www.gooout.net/download/</Value>
@@ -60,7 +60,7 @@
       <Value Profile="(Default)">3</Value>
     </Setting>
     <Setting Name="Registry_Key_OutlookProfiles" Type="System.String" Scope="User">
-      <Value Profile="(Default)">Software\Microsoft\Windows NT\CurrentVersion\Windows Messaging Subsystem\Profiles</Value>
+      <Value Profile="(Default)">Software\Microsoft\Office\16.0\Outlook\Profiles</Value>
     </Setting>
     <Setting Name="Registry_Value_OutlookDefaultProfile" Type="System.String" Scope="User">
       <Value Profile="(Default)">DefaultProfile</Value>
@@ -73,6 +73,12 @@
     </Setting>
     <Setting Name="Constant_ID_not_found" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">-2147220991</Value>
+    </Setting>
+    <Setting Name="GoogleAuth_ClientID" Type="System.String" Scope="User">
+      <Value Profile="(Default)">27900843233-1ujfh188ra7ng3dm3h0bbdlgiuhklovg.apps.googleusercontent.com</Value>
+    </Setting>
+    <Setting Name="GoogleAuth_ClientSecret" Type="System.String" Scope="User">
+      <Value Profile="(Default)">BlhKyuT59ppUidfoYHiWBl1G</Value>
     </Setting>
   </Settings>
 </SettingsFile>

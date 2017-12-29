@@ -1,20 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Google.Apis.Calendar.v3.Data;
+using System;
 using System.Linq;
-using System.Text;
-using Google.GData.Calendar;
 using Outlook = Microsoft.Office.Interop.Outlook;
 
 namespace R.GoogleOutlookSync
 {
     class EventComparer
     {
-        internal static bool Equals(EventEntry googleItem, Outlook.AppointmentItem outlookItem)
+        internal static bool Equals(Event googleItem, Outlook.AppointmentItem outlookItem)
         {
             return
-                googleItem.Title.Text == outlookItem.Subject &&
-                googleItem.Content.Content == outlookItem.Body &&
-                AttendeeComparer.Equals(googleItem.Participants, outlookItem.Recipients) &&
+                googleItem.Summary == outlookItem.Subject &&
+                googleItem.Description == outlookItem.Body &&
+                AttendeeComparer.Equals(googleItem.Attendees, outlookItem.Recipients) &&
                 LocationIsEqual(googleItem, outlookItem) &&
                 ReminderIsEqual(googleItem, outlookItem);
         }
@@ -38,20 +36,20 @@ namespace R.GoogleOutlookSync
         }
 
         [FieldComparer(Field.Location)]
-        private static bool LocationIsEqual(EventEntry googleItem, Outlook.AppointmentItem outlookItem)
+        private static bool LocationIsEqual(Event googleItem, Outlook.AppointmentItem outlookItem)
         {
             return
-                (String.IsNullOrEmpty(googleItem.Locations[0].ValueString) && String.IsNullOrEmpty(outlookItem.Location)) ||
-                (googleItem.Locations[0].ValueString == outlookItem.Location);
+                (String.IsNullOrEmpty(googleItem.Location) && String.IsNullOrEmpty(outlookItem.Location)) ||
+                (googleItem.Location == outlookItem.Location);
         }
 
         [FieldComparer(Field.Reminder)]
-        private static bool ReminderIsEqual(EventEntry googleItem, Outlook.AppointmentItem outlookItem)
+        private static bool ReminderIsEqual(Event googleItem, Outlook.AppointmentItem outlookItem)
         {
-            if ((googleItem.Reminder == null) && !outlookItem.ReminderSet)
+            if ((googleItem.Reminders == null) && !outlookItem.ReminderSet)
                 return true;
-            if (googleItem.Reminder != null)
-                return googleItem.Reminder.Minutes == outlookItem.ReminderMinutesBeforeStart;
+            if (googleItem.Reminders != null)
+                return googleItem.Reminders.Overrides.First().Minutes == outlookItem.ReminderMinutesBeforeStart;
             return false;
         }
 

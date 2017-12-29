@@ -2,19 +2,18 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Google.GData.Extensions;
 using Microsoft.Office.Interop.Outlook;
-using Google.GData.Calendar;
 using System.Text.RegularExpressions;
 using System.Runtime.InteropServices;
+using Google.Apis.Calendar.v3.Data;
 
 namespace R.GoogleOutlookSync
 {
     class EventRecurrence
     {
 
-        private static Regex _startTimePattern = new Regex("DTSTART(;TZID=.+?)?(;VALUE=DATE)?:(\\d{4})(\\d{2})(\\d{2})(T(\\d{2})(\\d{2})(\\d{2})Z?)?(\r|$)", RegexOptions.Singleline | RegexOptions.Compiled);
-        private static Regex _endTimePattern = new Regex("DTEND(;TZID=.+?)?(;VALUE=DATE)?:(\\d{4})(\\d{2})(\\d{2})(T(\\d{2})(\\d{2})(\\d{2})Z?)?(\r|$)", RegexOptions.Singleline | RegexOptions.Compiled);
+        //private static Regex _startTimePattern = new Regex("DTSTART(;TZID=.+?)?(;VALUE=DATE)?:(\\d{4})(\\d{2})(\\d{2})(T(\\d{2})(\\d{2})(\\d{2})Z?)?(\r|$)", RegexOptions.Singleline | RegexOptions.Compiled);
+        //private static Regex _endTimePattern = new Regex("DTEND(;TZID=.+?)?(;VALUE=DATE)?:(\\d{4})(\\d{2})(\\d{2})(T(\\d{2})(\\d{2})(\\d{2})Z?)?(\r|$)", RegexOptions.Singleline | RegexOptions.Compiled);
         private static Regex _frequencyPattern = new Regex("FREQ=(.*?)(;|\r|$)", RegexOptions.Singleline | RegexOptions.Compiled);
         private static Regex _byDayPattern = new Regex("(?<!BEGIN.*)BYDAY=(((-?\\d*)([A-Z]{2},?))+)(;|\r|$)", RegexOptions.Singleline | RegexOptions.Compiled);
         private static Regex _byMonthPattern = new Regex("(?<!BEGIN.*)BYMONTH=(\\d+)(;|\r|$)", RegexOptions.Singleline | RegexOptions.Compiled);
@@ -71,21 +70,20 @@ namespace R.GoogleOutlookSync
         /// Example: Every 3rd Monday of every February (yearly) - WeekInterval = 3
         /// </summary>
         internal int WeekInterval { get; set; }
-        internal List<RecurrenceException> Exceptions { get; set; }
+        internal IList<RecurrenceException> Exceptions { get; set; }
 
         public EventRecurrence()
-        { }
-
-        public EventRecurrence(Recurrence googleRecurrence, List<EventEntry> recurrenceExceptions = null)
         {
-            if (googleRecurrence == null)
+            this.Exceptions = new List<RecurrenceException>();
+        }
+
+        public EventRecurrence(Event googleItem, List<Event> recurrenceExceptions = null)
+            :this()
+        {
+            if (googleItem.Recurrence == null)
                 throw new ArgumentNullException("googleRecurrence", "Recurrence pattern is null");
-            var recPattern = googleRecurrence.Value;
-            var startTimeMatch = _startTimePattern.Match(recPattern);
-            this.StartDate = new DateTime(
-                Convert.ToInt32(startTimeMatch.Groups[3].Value),
-                Convert.ToInt32(startTimeMatch.Groups[4].Value),
-                Convert.ToInt32(startTimeMatch.Groups[5].Value));
+            var recPattern = string.Join(@"\n", googleItem.Recurrence);
+            this.StartDate = (googleItem.Start.DateTime ?? DateTime.Parse(googleItem.Start.Date)).Date;
             var endDateMatch = _untilPattern.Match(recPattern);
             if (endDateMatch.Success)
                 this.EndDate = new DateTime(
@@ -141,13 +139,12 @@ namespace R.GoogleOutlookSync
             /// Initialize recurrence exceptions
             if (recurrenceExceptions != null)
             {
-                this.Exceptions = new List<RecurrenceException>(recurrenceExceptions.Count);
-                foreach (var exception in recurrenceExceptions)
-                    this.Exceptions.Add(new RecurrenceException(exception));
+                this.Exceptions = recurrenceExceptions.Select(exception => new RecurrenceException(exception)).ToList();
             }
         }
 
         public EventRecurrence(RecurrencePattern outlookRecurrence)
+            :this()
         {
             if (outlookRecurrence == null)
                 throw new ArgumentNullException("outlookRecurrence", "Recurrence pattern is null");
@@ -204,13 +201,14 @@ namespace R.GoogleOutlookSync
             {
                 if (exceptions.Count > 0)
                 {
-                    this.Exceptions = new List<RecurrenceException>(exceptions.Count);
+                    //this.Exceptions = new List<RecurrenceException>(exceptions.Count);
                     foreach (Microsoft.Office.Interop.Outlook.Exception outlookException in exceptions)
                     {
-                        var exception = new RecurrenceException(this, outlookException.OriginalDate);
-                        exception.Deleted = outlookException.Deleted;
-                        if (!exception.Deleted)
-                            exception.ModifiedEvent = new CalendarEvent(outlookException.AppointmentItem);
+                        var exception = new RecurrenceException(this, outlookException.OriginalDate)
+                        {
+                            Deleted = outlookException.Deleted,
+                            ModifiedEvent = outlookException.Deleted ? null : new CalendarEvent(outlookException.AppointmentItem)
+                        };
                         this.Exceptions.Add(exception);
                     }
                 }
@@ -246,10 +244,16 @@ namespace R.GoogleOutlookSync
             if (!(obj is EventRecurrence))
                 return false;
             EventRecurrence target = obj as EventRecurrence;
-            var exceptionsEqual =
-                (this.Exceptions == null) && (target.Exceptions == null) ||
-                (this.Exceptions != null) && (target.Exceptions != null) && this.Exceptions.SequenceEqual(target.Exceptions, new RecurrenceExceptionComparer());
-
+            bool exceptionsEqual;
+            if (this.Exceptions == null || this.Exceptions.Count == 0)
+            {
+                exceptionsEqual = target.Exceptions == null || target.Exceptions.Count == 0;
+            }
+            else
+            {
+                exceptionsEqual = (target.Exceptions != null) && (target.Exceptions.Count != 0) 
+                    && this.Exceptions.SequenceEqual(target.Exceptions, new RecurrenceExceptionComparer());
+            }
             return
                 this.Count == target.Count &&
                 this.DayOfMonth == target.DayOfMonth &&

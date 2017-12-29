@@ -40,13 +40,13 @@ namespace R.GoogleOutlookSync
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            SetRegistrationStatus();
-            Properties.Settings.Default.ApplicationAllowedToRun = !Properties.Settings.Default.IsNotRegistered || !Program.IsExpired();
-            if (!Properties.Settings.Default.ApplicationAllowedToRun)
-            {
-                MessageBox.Show(Properties.Resources.Warning_ApplicationExpired, Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                new TrialityNotifierForm().ShowDialog();
-            }
+            //SetRegistrationStatus();
+            //Properties.Settings.Default.ApplicationAllowedToRun = !Properties.Settings.Default.IsNotRegistered || !Program.IsExpired();
+            //if (!Properties.Settings.Default.ApplicationAllowedToRun)
+            //{
+            //    MessageBox.Show(Properties.Resources.Warning_ApplicationExpired, Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            //    new TrialityNotifierForm().ShowDialog();
+            //}
             
             Application.Run(new SettingsForm());
             if (ProgramMutex.WaitOne(0, true))

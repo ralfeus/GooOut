@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Google.GData.Calendar;
-using Google.GData.Extensions;
+﻿using Google.Apis.Calendar.v3.Data;
 using Microsoft.Office.Interop.Outlook;
 
 namespace R.GoogleOutlookSync
@@ -21,19 +16,19 @@ namespace R.GoogleOutlookSync
             this.Status = status;
         }
 
-        public Attendee(string email, Who.AttendeeType type, Who.AttendeeStatus status)
+        public Attendee(string email, AttendeeType type, string responseStatus)
         {
             this.Email = email;
-            this.Required = type.Value == Who.AttendeeType.EVENT_REQUIRED;
-            switch (status.Value)
+            this.Required = type == AttendeeType.Required;
+            switch (responseStatus)
             {
-                case Who.AttendeeStatus.EVENT_ACCEPTED:
+                case "accepted":
                     this.Status = OlResponseStatus.olResponseAccepted;
                     break;
-                case Who.AttendeeStatus.EVENT_DECLINED:
+                case "declined":
                     this.Status = OlResponseStatus.olResponseDeclined;
                     break;
-                case Who.AttendeeStatus.EVENT_TENTATIVE:
+                case "tentative":
                     this.Status = OlResponseStatus.olResponseTentative;
                     break;
                 default:

@@ -1,18 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Google.GData.Client;
+﻿using Google.Apis.Calendar.v3.Data;
 
 namespace R.GoogleOutlookSync
 {
     internal class ItemMatcher 
     {
-        internal AtomEntry Google { get; set; }
+        internal Event Google { get; set; }
         internal object Outlook { get; set; }
         internal SyncAction SyncAction { get; set; }
 
-        internal ItemMatcher(AtomEntry googleItem, object outlookItem)
+        internal ItemMatcher(Event googleItem, object outlookItem)
         {
             this.Google = googleItem;
             this.Outlook = outlookItem;

@@ -1,11 +1,10 @@
-﻿using Google.GData.Calendar;
-using Outlook = Microsoft.Office.Interop.Outlook;
+﻿using Outlook = Microsoft.Office.Interop.Outlook;
 using System;
-using Google.GData.Extensions;
 using System.Linq;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using Google.GData.Client;
+using Google.Apis.Calendar.v3.Data;
+using Google.Apis.Discovery;
 
 namespace R.GoogleOutlookSync
 {
@@ -18,12 +17,13 @@ namespace R.GoogleOutlookSync
         /// <param name="outlookItem"></param>
         /// <returns></returns>
         //[FieldComparer(Field.AllDayEvent)]
-        private bool CompareAllDayEvent(EventEntry googleItem, Outlook.AppointmentItem outlookItem)
+        private bool CompareAllDayEvent(Event googleItem, Outlook.AppointmentItem outlookItem)
         {
-            return googleItem.Times[0].AllDay == outlookItem.AllDayEvent;
+            var result = (googleItem.Start.Date != "") == outlookItem.AllDayEvent;
+            return result;
         }
 
-        //private bool CompareRecurrence(EventEntry googleItem, Outlook.AppointmentItem outlookItem)
+        //private bool CompareRecurrence(Event googleItem, Outlook.AppointmentItem outlookItem)
         //{
         //    EventRecurrence googleRec = null;
         //    EventRecurrence outlookRec = null;
@@ -44,79 +44,90 @@ namespace R.GoogleOutlookSync
 
         /// Attachments are not accessible yet by Google API
         //[FieldComparer(Field.Attachments)]
-        //private bool CompareAttachments(EventEntry googleItem, Outlook.AppointmentItem outlookItem)
+        //private bool CompareAttachments(Event googleItem, Outlook.AppointmentItem outlookItem)
         //{
         //    return true;
         //}
 
         [FieldComparer(Field.Attendees)]
-        private bool CompareAttendees(EventEntry googleItem, Outlook.AppointmentItem outlookItem)
+        private bool CompareAttendees(Event googleItem, Outlook.AppointmentItem outlookItem)
         {
-            return AttendeeComparer.Equals(googleItem.Participants, outlookItem.Recipients); // ((vbMAPI_AppointmentItem)vbMAPI_Init.NewOutlookWrapper(outlookItem)).Recipients);
+            return AttendeeComparer.Equals(googleItem.Attendees, outlookItem.Recipients); // ((vbMAPI_AppointmentItem)vbMAPI_Init.NewOutlookWrapper(outlookItem)).Recipients);
         }
 
         [FieldComparer(Field.Description)]
-        private bool CompareDescription(EventEntry googleItem, Outlook.AppointmentItem outlookItem)
+        private bool CompareDescription(Event googleItem, Outlook.AppointmentItem outlookItem)
         {
             //var outlookItemBody = ((vbMAPI_AppointmentItem)vbMAPI_Init.NewOutlookWrapper(outlookItem)).Body.Value;
             return
-                (String.IsNullOrEmpty(googleItem.Content.Content) && String.IsNullOrEmpty(outlookItem.Body)) ||
-                (googleItem.Content.Content == outlookItem.Body);
+                (String.IsNullOrEmpty(googleItem.Description) && String.IsNullOrEmpty(outlookItem.Body)) ||
+                (googleItem.Description == outlookItem.Body);
         }
 
         [FieldComparer(Field.Location)]
-        private bool CompareLocation(EventEntry googleItem, Outlook.AppointmentItem outlookItem)
+        private bool CompareLocation(Event googleItem, Outlook.AppointmentItem outlookItem)
         {
             return
-                (String.IsNullOrEmpty(googleItem.Locations[0].ValueString) && String.IsNullOrEmpty(outlookItem.Location)) ||
-                (googleItem.Locations[0].ValueString == outlookItem.Location);
+                (String.IsNullOrEmpty(googleItem.Location) && String.IsNullOrEmpty(outlookItem.Location)) ||
+                (googleItem.Location == outlookItem.Location);
         }
 
         //[FieldComparer(Field.Reminder)]
-        private bool CompareReminder(EventEntry googleItem, Outlook.AppointmentItem outlookItem)
+        private bool CompareReminder(Event googleItem, Outlook.AppointmentItem outlookItem)
         {
-            if ((googleItem.Reminder == null) && !outlookItem.ReminderSet)
-                return true;
-            if (googleItem.Reminder != null)
-                return googleItem.Reminder.Minutes == outlookItem.ReminderMinutesBeforeStart;
-            return false;
+            if (!googleItem.Reminders.UseDefault.HasValue || googleItem.Reminders.UseDefault.Value)
+            {
+                googleItem.Reminders.Overrides = this._defaultReminders;
+            }
+            if (googleItem.Reminders.Overrides == null) 
+            {
+                return !outlookItem.ReminderSet;
+            }
+            else
+            {
+                return 
+                    outlookItem.ReminderSet  && 
+                    (googleItem.Reminders.Overrides.First().Minutes == outlookItem.ReminderMinutesBeforeStart);
+            }
         }
 
         [FieldComparer(Field.ShowTimeAs)]
-        private bool CompareShowTimeAs(EventEntry googleItem, Outlook.AppointmentItem outlookItem)
+        private bool CompareShowTimeAs(Event googleItem, Outlook.AppointmentItem outlookItem)
         {
-            return googleItem.EventTransparency.Value == ConvertTo.Google(outlookItem.BusyStatus).Value;
+            return (googleItem.Transparency ?? "transparent") == ConvertTo.GoogleAvailability(outlookItem.BusyStatus);
         }
         
         [FieldComparer(Field.Subject)]
-        private bool CompareSubjects(EventEntry googleItem, Outlook.AppointmentItem outlookItem)
+        private bool CompareSubjects(Event googleItem, Outlook.AppointmentItem outlookItem)
         {
-            return googleItem.Title.Text == outlookItem.Subject;
+            return googleItem.Summary.Equals(outlookItem.Subject);
         }
 
         [FieldComparer(Field.Time)]
-        private bool CompareTime(EventEntry googleItem, Outlook.AppointmentItem outlookItem)
+        private bool CompareTime(Event googleItem, Outlook.AppointmentItem outlookItem)
         {
-            List<EventEntry> googleExceptions = null;
-            if (this._googleExceptions.ContainsKey(googleItem.EventId))
-                googleExceptions = this._googleExceptions[googleItem.EventId];
+            var instancesRequest = CalendarService.Events.Instances(_googleCalendar.Id, googleItem.Id);
+            instancesRequest.ShowDeleted = true;
+            var googleExceptions = instancesRequest.Execute().Items.Where(e => e.Status == "cancelled").ToList();
+            var googleEventSchedule = new EventSchedule(googleItem, googleExceptions);
+            var outlookEventSchedule = new EventSchedule(outlookItem);
             
             return
-                new EventSchedule(googleItem, googleExceptions).Equals(new EventSchedule(outlookItem)) &&
+                googleEventSchedule == outlookEventSchedule &&
                 this.CompareReminder(googleItem, outlookItem);
         }
 
         [FieldComparer(Field.Visibility)]
-        private bool CompareVisibility(EventEntry googleItem, Outlook.AppointmentItem outlookItem)
+        private bool CompareVisibility(Event googleItem, Outlook.AppointmentItem outlookItem)
         {
-            return googleItem.EventVisibility.Value == ConvertTo.Google(outlookItem.Sensitivity).Value;
+            return (googleItem.Visibility ?? "default" ) == ConvertTo.GoogleVisibility(outlookItem.Sensitivity);
         }
 
         //[FieldGetter(Field.Subject)]
         //private string GetSubject(object item)
         //{
-        //    if (item is EventEntry)
-        //        return ((EventEntry)item).Title.Text;
+        //    if (item is Event)
+        //        return ((Event)item).Summary;
         //    else if (item is Outlook.AppointmentItem)
         //        return ((Outlook.AppointmentItem)item).Subject;
         //    else
@@ -124,7 +135,7 @@ namespace R.GoogleOutlookSync
         //}
 
         //[FieldSetter(Field.AllDayEvent)]
-        //private void SetAllDayEvent(EventEntry googleItem, Outlook.AppointmentItem outlookItem, Targets target)
+        //private void SetAllDayEvent(Event googleItem, Outlook.AppointmentItem outlookItem, Targets target)
         //{
         //    if (target == Targets.Google)
         //    {
@@ -138,37 +149,52 @@ namespace R.GoogleOutlookSync
 
         /// Attachments are not accessible yet by Google API
         //[FieldSetter(Field.Attachments)]
-        //private void SetAttachments(EventEntry googleItem, Outlook.AppointmentItem outlookItem, Target target)
+        //private void SetAttachments(Event googleItem, Outlook.AppointmentItem outlookItem, Target target)
         //{
         //}
 
         [FieldSetter(Field.Attendees)]
-        private void SetAttendees(EventEntry googleItem, Outlook.AppointmentItem outlookItem, Target target)
+        private void SetAttendees(Event googleItem, Outlook.AppointmentItem outlookItem, Target target)
         {
             if (target == Target.Google)
             {
+                if (googleItem.Attendees == null)
+                {
+                    googleItem.Attendees = new List<EventAttendee>();
+                }
                 foreach (Outlook.Recipient outlookRecipient in outlookItem.Recipients)
                 {
                     try 
                     {
+#if DEBUG
+                        Logger.Log(string.Format("Adding attendee {0} to Google event", outlookRecipient.Address), EventType.Debug);
+#endif
                         /// Organizator is omited
                         if (((Outlook.OlMeetingRecipientType)outlookRecipient.Type == Outlook.OlMeetingRecipientType.olOrganizer) ||
                             (outlookRecipient.Address == null) ||
                             !Utilities.SMTPAddressPattern.IsMatch(outlookRecipient.Address))
+                        {
+#if DEBUG
+                            Logger.Log(string.Format("{0} is a meeting organizer or it's not valid SMTP address, so it won't be added", outlookRecipient.Address), 
+                                EventType.Debug);
+#endif
                             continue;
-                        var googleRecipient = googleItem.Participants.FirstOrDefault(recipient => recipient.Email == outlookRecipient.Address);
+                        }
+                        var googleRecipient = googleItem.Attendees.FirstOrDefault(recipient => recipient.Email == outlookRecipient.Address);
                         if (googleRecipient == null)
                         {
-                            googleRecipient = new Who();
-                            googleRecipient.Email = outlookRecipient.Address;
-                            googleItem.Participants.Add(googleRecipient);
+                            googleRecipient = new EventAttendee
+                            {
+                                Email = outlookRecipient.Address
+                            };
+                            googleItem.Attendees.Add(googleRecipient);
                         }
                         else if (AttendeeComparer.Equals(googleRecipient, outlookRecipient))
                         {
                             continue;
                         }
-                        googleRecipient.Rel = ConvertTo.Google((Outlook.OlMeetingRecipientType)outlookRecipient.Type);
-                        googleRecipient.Attendee_Status = ConvertTo.Google(outlookRecipient.MeetingResponseStatus);
+                        googleRecipient = ConvertTo.GoogleRecipientType(googleRecipient, (Outlook.OlMeetingRecipientType)outlookRecipient.Type);
+                        googleRecipient.ResponseStatus = ConvertTo.GoogleResponseStatus(outlookRecipient.MeetingResponseStatus);
                     }
                     finally
                     {
@@ -178,54 +204,54 @@ namespace R.GoogleOutlookSync
             }
             else
             {
-                foreach (var googleRecipient in googleItem.Participants)
+                if (googleItem.Attendees != null)
                 {
-                    /// Organizator and not valid SMTP addresses are omited
-                    if ((googleRecipient.Rel == "http://schemas.google.com/g/2005#event.organizer") ||
-                        !Utilities.SMTPAddressPattern.IsMatch(googleRecipient.Email))
-                        continue;
-                    var matchIsFound = false;
-                    foreach (Outlook.Recipient outlookRecipient in outlookItem.Recipients)
+                    foreach (var googleRecipient in googleItem.Attendees)
                     {
-                        if (googleRecipient.Email == outlookRecipient.Address)
+                        /// Organizator and not valid SMTP addresses are omited
+                        if (googleRecipient.Organizer.HasValue && googleRecipient.Organizer.Value ||
+                            !Utilities.SMTPAddressPattern.IsMatch(googleRecipient.Email))
+                            continue;
+                        var matchIsFound = false;
+                        foreach (Outlook.Recipient outlookRecipient in outlookItem.Recipients)
                         {
-                            matchIsFound = true;
+                            if (googleRecipient.Email == outlookRecipient.Address)
+                            {
+                                matchIsFound = true;
+                                Marshal.ReleaseComObject(outlookRecipient);
+                                break;
+                            }
                             Marshal.ReleaseComObject(outlookRecipient);
-                            break;
                         }
-                        Marshal.ReleaseComObject(outlookRecipient);
-                    }
-                    if (!matchIsFound)
-                    {
-                        Outlook.Recipient outlookRecipient = outlookItem.Recipients.Add(googleRecipient.Email);
-                        outlookRecipient.Type = (int)ConvertTo.Outlook(googleRecipient.Rel);
-                        Marshal.ReleaseComObject(outlookRecipient);
+                        if (!matchIsFound)
+                        {
+                            Outlook.Recipient outlookRecipient = outlookItem.Recipients.Add(googleRecipient.Email);
+                            outlookRecipient.Type = (int)ConvertTo.OutlookRecipientType(googleRecipient);
+                            Marshal.ReleaseComObject(outlookRecipient);
+                        }
                     }
                 }
             }
         }
 
         [FieldSetter(Field.Description)]
-        private void SetDescription(EventEntry googleItem, Outlook.AppointmentItem outlookItem, Target target)
+        private void SetDescription(Event googleItem, Outlook.AppointmentItem outlookItem, Target target)
         {
             if (target == Target.Google)
-                googleItem.Content.Content = outlookItem.Body;
+                googleItem.Description = outlookItem.Body;
             else
-                outlookItem.Body = googleItem.Content.Content;
+                outlookItem.Body = googleItem.Description;
         }
 
         [FieldSetter(Field.Location)]
-        private void SetLocation(EventEntry googleItem, Outlook.AppointmentItem outlookItem, Target target)
+        private void SetLocation(Event googleItem, Outlook.AppointmentItem outlookItem, Target target)
         {
             if (target == Target.Google)
             {
-                if (googleItem.Locations.Count == 0)
-                    googleItem.Locations.Add(new Where("location", outlookItem.Location, outlookItem.Location));
-                else
-                    googleItem.Locations[0].ValueString = outlookItem.Location;
+                    googleItem.Location = outlookItem.Location;
             }
             else
-                outlookItem.Location = googleItem.Locations[0].ValueString;
+                outlookItem.Location = googleItem.Location;
         }
 
         /// <summary>
@@ -233,11 +259,11 @@ namespace R.GoogleOutlookSync
         /// </summary>
         /// <param name="googleItem">Source Google event</param>
         /// <param name="outlookItem">Target Outlook event</param>
-        private void SetRecurrence(EventEntry googleItem, Outlook.AppointmentItem outlookItem)
+        private void SetRecurrence(Event googleItem, Outlook.AppointmentItem outlookItem)
         {
             if (googleItem.Recurrence != null)
             {
-                Logger.Log(googleItem.Recurrence.Value, EventType.Debug);
+                Logger.Log(string.Join(@"\n", googleItem.Recurrence), EventType.Debug);
                 new EventSchedule(googleItem).GetOutlookRecurrence(outlookItem);
                 this.SetRecurrenceExceptions(googleItem, outlookItem);
             }
@@ -248,51 +274,75 @@ namespace R.GoogleOutlookSync
         /// <summary>
         /// Sets recurrence in direction Outlook -> Google
         /// </summary>
-        /// <param name="googleItem">Source Outlook event</param>
-        /// <param name="outlookItem">Target Google event</param>
-        private void SetRecurrence(Outlook.AppointmentItem outlookItem, EventEntry googleItem)
+        /// <param name="outlookItem">Source Outlook event</param>
+        /// <param name="googleItem">Target Google event</param>
+        private void SetRecurrence(Outlook.AppointmentItem outlookItem, Event googleItem)
         {
             if (outlookItem.IsRecurring)
             {
                 /// Times property doesn't contain anything for recurrent events
-                googleItem.Times.Clear();
                 var outlookItemSchedule = new EventSchedule(outlookItem);
                 googleItem.Recurrence = outlookItemSchedule.GetGoogleRecurrence();
-                this.SetRecurrenceExceptions(outlookItem, googleItem);
+                /// Recurrence exceptions can be set for Google item only after the item is create or updated
+                /// Only in this case all recurrence instances are created
+                //this.SetRecurrenceExceptions(outlookItem, googleItem);
             }
             else
+            {
                 googleItem.Recurrence = null;
+            }
         }
 
         //[FieldSetter(Field.Reminder)]
-        private void SetReminder(EventEntry googleItem, Outlook.AppointmentItem outlookItem, Target target)
+        private void SetReminder(Event googleItem, Outlook.AppointmentItem outlookItem, Target target)
         {
             if (target == Target.Google)
+            {
                 if (outlookItem.ReminderSet)
                 {
-                    var reminder = new Reminder();
-                    reminder.Minutes = outlookItem.ReminderMinutesBeforeStart;
-                    reminder.Method = Reminder.ReminderMethod.all;
-                    if (googleItem.Reminder == null)
-                        try
-                        {
-                            googleItem.Reminders.Add(reminder);
-                        }
-                        catch (NullReferenceException)
-                        {
-                            throw new EventScheduleIsNotSetException(Properties.Resources.Error_EventScheduleIsNotSet);
-                        }
+                    var reminder = new EventReminder
+                    {
+                        Minutes = outlookItem.ReminderMinutesBeforeStart,
+                        Method = "popup"
+                    };
+                    googleItem.Reminders.Overrides = new[] { reminder };
                 }
-                else
-                    googleItem.Reminder = null;
-            else
-                if (googleItem.Reminder == null)
-                    outlookItem.ReminderSet = false;
                 else
                 {
-                    outlookItem.ReminderSet = true;
-                    outlookItem.ReminderMinutesBeforeStart = googleItem.Reminder.Minutes;
+                    googleItem.Reminders.UseDefault = false;
+                    googleItem.Reminders.Overrides = null;
                 }
+            }
+            else if (googleItem.Reminders == null)
+            {
+                outlookItem.ReminderSet = false;
+            }
+            else
+            {
+                if (googleItem.Reminders.UseDefault.GetValueOrDefault())
+                {
+                    if (this._defaultReminders.Any())
+                    {
+                        outlookItem.ReminderSet = true;
+                        outlookItem.ReminderOverrideDefault = true;
+                        outlookItem.ReminderMinutesBeforeStart = this._defaultReminders.First().Minutes.GetValueOrDefault();
+                    } else
+                    {
+                        outlookItem.ReminderSet = false;
+                    }
+                } else
+                {
+                    if (googleItem.Reminders.Overrides != null && googleItem.Reminders.Overrides.Count > 0)
+                    {
+                        outlookItem.ReminderSet = true;
+                        outlookItem.ReminderOverrideDefault = true;
+                        outlookItem.ReminderMinutesBeforeStart = googleItem.Reminders.Overrides.First().Minutes.GetValueOrDefault();
+                    } else
+                    {
+                        outlookItem.ReminderSet = false;
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -300,39 +350,42 @@ namespace R.GoogleOutlookSync
         /// </summary>
         /// <param name="googleItem">Source Google event</param>
         /// <param name="outlookItem">Target Outlook event</param>
-        private void SetRecurrenceExceptions(EventEntry googleItem, Outlook.AppointmentItem outlookItem)
+        private void SetRecurrenceExceptions(Event googleItem, Outlook.AppointmentItem outlookItem)
         {
-            if (!this._googleExceptions.ContainsKey(googleItem.EventId))
-                return;
+            //if (!this._googleExceptions.ContainsKey(googleItem.Id))
+            //    return;
             outlookItem.Save();
             Outlook.RecurrencePattern outlookRecurrence = outlookItem.GetRecurrencePattern();
             try
             {
-                foreach (EventEntry googleException in this._googleExceptions[googleItem.EventId])
+                if (this._googleExceptions.ContainsKey(googleItem.Id))
                 {
-                    /// If the exception is already in Outlook event this one is omited
-                    //if (RecurrenceExceptionComparer.Contains(outlookRecurrence.Exceptions, googleException))
-                    //    continue;
-                    /// Get occurence of the recurrence and modify it. Thus new exception is created
-                    Outlook.AppointmentItem outlookExceptionItem = outlookRecurrence.GetOccurrence(googleException.OriginalEvent.OriginalStartTime.StartTime);
-                    try
+                    foreach (Event googleException in this._googleExceptions[googleItem.Id])
                     {
-                        if (googleException.Status.Value == EventEntry.EventStatus.CANCELED_VALUE)
+                        /// If the exception is already in Outlook event this one is omited
+                        //if (RecurrenceExceptionComparer.Contains(outlookRecurrence.Exceptions, googleException))
+                        //    continue;
+                        /// Get occurence of the recurrence and modify it. Thus new exception is created
+                        Outlook.AppointmentItem outlookExceptionItem = outlookRecurrence.GetOccurrence(googleException.OriginalStartTime.DateTime.Value);
+                        try
                         {
-                            outlookExceptionItem.Delete();
+                            if (googleException.Status == "cancelled")
+                            {
+                                outlookExceptionItem.Delete();
+                            }
+                            else
+                            {
+                                this.SetSubject(googleException, outlookExceptionItem, Target.Outlook);
+                                this.SetDescription(googleException, outlookExceptionItem, Target.Outlook);
+                                this.SetLocation(googleException, outlookExceptionItem, Target.Outlook);
+                                this.SetTime(googleException, outlookExceptionItem, Target.Outlook);
+                                outlookExceptionItem.Save();
+                            }
                         }
-                        else
+                        finally
                         {
-                            this.SetSubject(googleException, outlookExceptionItem, Target.Outlook);
-                            this.SetDescription(googleException, outlookExceptionItem, Target.Outlook);
-                            this.SetLocation(googleException, outlookExceptionItem, Target.Outlook);
-                            this.SetTime(googleException, outlookExceptionItem, Target.Outlook);
-                            outlookExceptionItem.Save();
+                            Marshal.ReleaseComObject(outlookExceptionItem);
                         }
-                    }
-                    finally
-                    {
-                        Marshal.ReleaseComObject(outlookExceptionItem);
                     }
                 }
             }
@@ -345,11 +398,16 @@ namespace R.GoogleOutlookSync
         /// <summary>
         /// Sets recurrence exceptions in direction Outlook -> Google
         /// </summary>
-        /// <param name="googleItem">Source Outlook event</param>
-        /// <param name="outlookItem">Target Google event</param>
-        private void SetRecurrenceExceptions(Outlook.AppointmentItem outlookItem, EventEntry googleItem)
+        /// <param name="outlookItem">Source Outlook event</param>
+        /// <param name="googleItem">Target Google event</param>
+        private void SetRecurrenceExceptions(Outlook.AppointmentItem outlookItem, Event googleItem)
         {
+            if (!outlookItem.IsRecurring)
+            {
+                return;
+            }
             Outlook.RecurrencePattern outlookRecurrence = outlookItem.GetRecurrencePattern();
+            var instances = this.CalendarService.Events.Instances(this._googleCalendar.Id, googleItem.Id).Execute();
             try
             {
                 foreach (Outlook.Exception outlookException in outlookRecurrence.Exceptions)
@@ -357,46 +415,28 @@ namespace R.GoogleOutlookSync
                     try
                     {
                         /// If the exception is already in Google event this one is omited
-                        if (this._googleExceptions.ContainsKey(googleItem.EventId) &&
-                            RecurrenceExceptionComparer.Contains(this._googleExceptions[googleItem.EventId], outlookException))
+                        if (this._googleExceptions.ContainsKey(googleItem.Id) &&
+                            RecurrenceExceptionComparer.Contains(this._googleExceptions[googleItem.Id], outlookException))
                             continue;
                         //googleItem.RecurrenceException = new Google.GData.Extensions.RecurrenceException();
-                        var googleException = new EventEntry();
-                        googleException.OriginalEvent = new OriginalEvent();
-                        googleException.OriginalEvent.IdOriginal = googleItem.EventId;
-                        googleException.OriginalEvent.Href = googleItem.SelfUri.Content;
-                        googleException.OriginalEvent.OriginalStartTime = new When();
-                        googleException.OriginalEvent.OriginalStartTime.AllDay = outlookItem.AllDayEvent;
-                        //if (googleException.Times.Count == 0)
-                        //    googleException.Times.Add(
-                        //        new When(
-                        //            outlookException.ModifiedEvent.Schedule.StartTime,
-                        //            outlookException.ModifiedEvent.Schedule.EndTime,
-                        //            outlookException.ModifiedEvent.Schedule.AllDayEvent));
+                        var googleException = instances.Items.First(e =>
+                            (e.OriginalStartTime.DateTime ?? DateTime.Parse(e.OriginalStartTime.Date)).Date == outlookException.OriginalDate);
                         if (outlookException.Deleted)
                         {
-                            /// If Outlook exception is deletion it contains only date of exception
-                            /// Otherwise it contains exact time.
-                            /// But Google exception always requires time of original occurence. Therefore it's set depending on exception type
-                            googleException.OriginalEvent.OriginalStartTime.StartTime = outlookException.OriginalDate;
-                            if (!googleException.OriginalEvent.OriginalStartTime.AllDay)
-                                googleException.OriginalEvent.OriginalStartTime.StartTime += outlookItem.Start.TimeOfDay;
                             /// Specify the exception is deletion
-                            googleException.Status = EventEntry.EventStatus.CANCELED;
+                            googleException.Status = "cancelled";
                         }
                         else
                         {
-                            googleException.OriginalEvent.OriginalStartTime.StartTime = outlookException.OriginalDate;
-                            googleException.Status = EventEntry.EventStatus.CONFIRMED;
+                            googleException.Status = "confirmed";
                             this.SetSubject(googleException, outlookException.AppointmentItem, Target.Google);
                             this.SetDescription(googleException, outlookException.AppointmentItem, Target.Google);
                             this.SetLocation(googleException, outlookException.AppointmentItem, Target.Google);
                             this.SetTime(googleException, outlookException.AppointmentItem, Target.Google);
                         }
-                        //googleException = this._googleConnection.Insert(new Uri(this._calendarFeedUrl), googleException);
                         /// Add exception to update batch
-                        googleException.BatchData = new GDataBatchEntryData(GDataBatchOperationType.insert);
-                        this._googleBatchUpdateFeed.Entries.Add(googleException);
+                        this._googleBatchRequest.Queue<Event>(this.CalendarService.Events.Update(
+                            googleException, this._googleCalendar.Id, googleException.Id), BatchCallback);
                     }
                     finally
                     {
@@ -410,41 +450,52 @@ namespace R.GoogleOutlookSync
             }
         }
 
+        /// <summary>
+        /// Sets event transparency
+        /// </summary>
+        /// <param name="googleItem">Google event</param>
+        /// <param name="outlookItem">Outlook event</param>        
         [FieldSetter(Field.ShowTimeAs)]
-        private void SetShowTimeAs(EventEntry googleItem, Outlook.AppointmentItem outlookItem, Target target)
+        private void SetShowTimeAs(Event googleItem, Outlook.AppointmentItem outlookItem, Target target)
         {
             if (target == Target.Google)
-                googleItem.EventTransparency = ConvertTo.Google(outlookItem.BusyStatus);
+                googleItem.Transparency = ConvertTo.GoogleAvailability(outlookItem.BusyStatus);
             else
-                outlookItem.BusyStatus = ConvertTo.Outlook(googleItem.EventTransparency);
+                outlookItem.BusyStatus = ConvertTo.OutlookAvailability(googleItem.Transparency);
         }
 
+        /// <summary>
+        /// Sets event schedule
+        /// </summary>
+        /// <param name="googleItem">Google event</param>
+        /// <param name="outlookItem">Outlook event</param>        
         [FieldSetter(Field.Time)]
-        private void SetTime(EventEntry googleItem, Outlook.AppointmentItem outlookItem, Target target)
+        private void SetTime(Event googleItem, Outlook.AppointmentItem outlookItem, Target target)
         {
             /// in order to prevent situation when start is later then end
             /// we should process both times simultaniously and check what time should be changed first
             if (target == Target.Google)
-                if (!(outlookItem.IsRecurring && (outlookItem.RecurrenceState == Outlook.OlRecurrenceState.olApptMaster)))
+            {
+                //var schedule = new EventSchedule(outlookItem);
+                if (outlookItem.AllDayEvent)
                 {
-                    //var schedule = new EventSchedule(outlookItem);
-                    if (googleItem.Times.Count == 0)
-                        googleItem.Times.Add(new When());
-                    if (outlookItem.Start >= googleItem.Times[0].EndTime)
-                    {
-                        googleItem.Times[0].EndTime = outlookItem.End;
-                        googleItem.Times[0].StartTime = outlookItem.Start;
-                    }
-                    else
-                    {
-                        googleItem.Times[0].StartTime = outlookItem.Start;
-                        googleItem.Times[0].EndTime = outlookItem.End;
-                    }
-                    googleItem.Times[0].AllDay = outlookItem.AllDayEvent; // schedule.AllDayEvent;
+                    googleItem.Start.Date = outlookItem.Start.ToString("yyyy-MM-dd");
+                    googleItem.End.Date = outlookItem.End.ToString("yyyy-MM-dd");
                 }
                 else
+                {
+                    googleItem.Start.DateTime = outlookItem.Start;
+                    googleItem.Start.TimeZone = TimeZones.GetTZ(outlookItem.StartTimeZone.ID);
+                    googleItem.End.DateTime = outlookItem.End;
+                    googleItem.End.TimeZone = TimeZones.GetTZ(outlookItem.EndTimeZone.ID);
+                }
+                if (outlookItem.IsRecurring || (outlookItem.RecurrenceState == Outlook.OlRecurrenceState.olApptMaster))
+                {
                     this.SetRecurrence(outlookItem, googleItem);
-            else 
+                }
+            }
+            else
+            {
                 if (googleItem.Recurrence == null)
                 {
                     var schedule = new EventSchedule(googleItem);
@@ -454,30 +505,40 @@ namespace R.GoogleOutlookSync
                 }
                 else
                     this.SetRecurrence(googleItem, outlookItem);
-
+            }
             this.SetReminder(googleItem, outlookItem, target);
         }
 
+        /// <summary>
+        /// Sets event subject
+        /// </summary>
+        /// <param name="googleItem">Google event</param>
+        /// <param name="outlookItem">Outlook event</param>        
         [FieldSetter(Field.Subject)]
-        private void SetSubject(EventEntry googleItem, Outlook.AppointmentItem outlookItem, Target target)
+        private void SetSubject(Event googleItem, Outlook.AppointmentItem outlookItem, Target target)
         {
             if (target == Target.Google)
             {
-                googleItem.Title.Text = outlookItem.Subject;
+                googleItem.Summary = outlookItem.Subject;
             }
             else
             {
-                outlookItem.Subject = googleItem.Title.Text;
+                outlookItem.Subject = googleItem.Summary;
             }
         }
 
+        /// <summary>
+        /// Sets event visibility
+        /// </summary>
+        /// <param name="googleItem">Google event</param>
+        /// <param name="outlookItem">Outlook event</param>        
         [FieldSetter(GoogleOutlookSync.Field.Visibility)]
-        private void SetVisibility(EventEntry googleItem, Outlook.AppointmentItem outlookItem, Target target)
+        private void SetVisibility(Event googleItem, Outlook.AppointmentItem outlookItem, Target target)
         {
             if (target == Target.Google)
-                googleItem.EventVisibility = ConvertTo.Google(outlookItem.Sensitivity);
+                googleItem.Visibility = ConvertTo.GoogleVisibility(outlookItem.Sensitivity);
             else 
-                outlookItem.Sensitivity = ConvertTo.Outlook(googleItem.EventVisibility);
+                outlookItem.Sensitivity = ConvertTo.OutlookVisibility(googleItem.Visibility);
         }
     }
 }

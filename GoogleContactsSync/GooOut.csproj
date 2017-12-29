@@ -56,7 +56,7 @@
     <DefineConstants>TRACE;DEBUG;debug</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <PlatformTarget>x86</PlatformTarget>
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
@@ -125,43 +125,33 @@
     <RunPostBuildEvent>OnOutputUpdated</RunPostBuildEvent>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Google.GData.AccessControl, Version=2.2.0.0, Culture=neutral, PublicKeyToken=b4b8eb9a7afc8328, processorArchitecture=MSIL">
-      <HintPath>..\packages\Google.GData.AccessControl.2.2.0.0\lib\Google.GData.AccessControl.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Google.Apis, Version=1.30.0.0, Culture=neutral, PublicKeyToken=4b01fa6e34db77ab, processorArchitecture=MSIL">
+      <HintPath>..\packages\Google.Apis.1.30.0\lib\net45\Google.Apis.dll</HintPath>
     </Reference>
-    <Reference Include="Google.GData.Calendar, Version=2.2.0.0, Culture=neutral, PublicKeyToken=aa6748391206b888, processorArchitecture=MSIL">
-      <HintPath>..\packages\Google.GData.Calendar.2.2.0.0\lib\Google.GData.Calendar.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Google.Apis.Auth, Version=1.30.0.0, Culture=neutral, PublicKeyToken=4b01fa6e34db77ab, processorArchitecture=MSIL">
+      <HintPath>..\packages\Google.Apis.Auth.1.30.0\lib\net45\Google.Apis.Auth.dll</HintPath>
     </Reference>
-    <Reference Include="Google.GData.Client, Version=2.2.0.0, Culture=neutral, PublicKeyToken=04a59ca9b0273830, processorArchitecture=MSIL">
-      <HintPath>..\packages\Google.GData.Client.2.2.0.0\lib\Google.GData.Client.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Google.Apis.Auth.PlatformServices, Version=1.30.0.0, Culture=neutral, PublicKeyToken=4b01fa6e34db77ab, processorArchitecture=MSIL">
+      <HintPath>..\packages\Google.Apis.Auth.1.30.0\lib\net45\Google.Apis.Auth.PlatformServices.dll</HintPath>
     </Reference>
-    <Reference Include="Google.GData.Contacts, Version=1.7.0.12893, Culture=neutral, PublicKeyToken=7e065189dd4b982f, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\GoogleAPI\Google.GData.Contacts.dll</HintPath>
+    <Reference Include="Google.Apis.Calendar.v3, Version=1.30.0.1034, Culture=neutral, PublicKeyToken=4b01fa6e34db77ab, processorArchitecture=MSIL">
+      <HintPath>..\packages\Google.Apis.Calendar.v3.1.30.0.1034\lib\net45\Google.Apis.Calendar.v3.dll</HintPath>
     </Reference>
-    <Reference Include="Google.GData.Documents">
-      <HintPath>..\GoogleAPI\Google.GData.Documents.dll</HintPath>
+    <Reference Include="Google.Apis.Core, Version=1.30.0.0, Culture=neutral, PublicKeyToken=4b01fa6e34db77ab, processorArchitecture=MSIL">
+      <HintPath>..\packages\Google.Apis.Core.1.30.0\lib\net45\Google.Apis.Core.dll</HintPath>
     </Reference>
-    <Reference Include="Google.GData.Extensions, Version=2.2.0.0, Culture=neutral, PublicKeyToken=0b4c5df2ebf20876, processorArchitecture=MSIL">
-      <HintPath>..\packages\Google.GData.Extensions.2.2.0.0\lib\Google.GData.Extensions.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Google.Apis.PlatformServices, Version=1.30.0.0, Culture=neutral, PublicKeyToken=4b01fa6e34db77ab, processorArchitecture=MSIL">
+      <HintPath>..\packages\Google.Apis.1.30.0\lib\net45\Google.Apis.PlatformServices.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="Microsoft.Office.Interop.Outlook, Version=14.0.0.0, Culture=neutral, PublicKeyToken=71e9bce111e9429c, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <EmbedInteropTypes>True</EmbedInteropTypes>
       <HintPath>..\OutlookAPI\Microsoft.Office.Interop.Outlook.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Newtonsoft.Json, Version=4.0.5.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.4.0.5\lib\net40\Newtonsoft.Json.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="SecurityManager.2005, Version=6.1.3016.2005, Culture=neutral, PublicKeyToken=aa42cad61af07cf4, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>C:\Program Files (x86)\Add-in Express\Security Manager for Microsoft Outlook .NET\Bin\SecurityManager.2005.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.10.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration.Install" />
@@ -169,13 +159,11 @@
     <Reference Include="System.Deployment" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Management" />
+    <Reference Include="System.Net.Http" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\..\_Utilities\Updater.cs">
-      <Link>Updater.cs</Link>
-    </Compile>
     <Compile Include="AboutBox.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -195,12 +183,6 @@
     <Compile Include="Enums.cs" />
     <Compile Include="FieldHandlers.cs" />
     <Compile Include="GoogleUtilities.cs" />
-    <Compile Include="Installer.cs">
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Include="Installer.Designer.cs">
-      <DependentUpon>Installer.cs</DependentUpon>
-    </Compile>
     <Compile Include="ItemMatcher.cs" />
     <Compile Include="CalendarSynchronizer.cs" />
     <Compile Include="CalendarSyncSettings.cs">
@@ -216,25 +198,9 @@
       <DependentUpon>ConflictResolverForm.cs</DependentUpon>
     </Compile>
     <Compile Include="ConflictResolver.cs" />
-    <Compile Include="ContactPreview.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="ContactPreview.Designer.cs">
-      <DependentUpon>ContactPreview.cs</DependentUpon>
-    </Compile>
-    <Compile Include="ContactPropertiesUtils.cs" />
-    <Compile Include="ContactsMatcher.cs" />
-    <Compile Include="ContactSync.cs" />
-    <Compile Include="DeleteDuplicatesForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="DeleteDuplicatesForm.Designer.cs">
-      <DependentUpon>DeleteDuplicatesForm.cs</DependentUpon>
-    </Compile>
     <Compile Include="DuplicateDataException.cs" />
     <Compile Include="Encryption.cs" />
     <Compile Include="ErrorHandler.cs" />
-    <Compile Include="IConflictResolver.cs" />
     <Compile Include="LogForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -300,17 +266,6 @@
       <SubType>Designer</SubType>
       <DependentUpon>ConflictResolverForm.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="ContactPreview.resx">
-      <SubType>Designer</SubType>
-      <DependentUpon>ContactPreview.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="DeleteDuplicatesForm.de.resx">
-      <DependentUpon>DeleteDuplicatesForm.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="DeleteDuplicatesForm.resx">
-      <SubType>Designer</SubType>
-      <DependentUpon>DeleteDuplicatesForm.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="LogForm.de.resx">
       <DependentUpon>LogForm.cs</DependentUpon>
     </EmbeddedResource>
@@ -350,7 +305,7 @@
     </None>
     <Compile Include="SyncActions.cs" />
     <Compile Include="SyncResult.cs" />
-    <Compile Include="Syncronizer.cs" />
+    <Compile Include="Synchronizer.cs" />
     <Compile Include="TimeZones.cs" />
     <Compile Include="TrialityNotifierForm.cs">
       <SubType>Form</SubType>
@@ -366,11 +321,8 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="D:\Dropbox\Projects\OutlookGoogleSync\GoogleContactsSync\bin\Timezones.xml">
-      <Link>Resources\Timezones.xml</Link>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
     <Content Include="Resources\Logo.ico" />
+    <EmbeddedResource Include="Resources\TimeZones.xml" />
     <None Include="Resources\Sync.ico" />
     <None Include="Resources\Sync.png" />
     <None Include="Resources\Advanced.png" />
@@ -400,8 +352,8 @@
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>powershell -command del d:\Dropbox\Projects\OutlookGoogleSync\GoogleContactsSync\$(OutDir)\. -recurse -confirm:$false
-powershell -command copy $(TargetDir) d:\Dropbox\Projects\OutlookGoogleSync\GoogleContactsSync\$(OutDir) -recurse -confirm:$false</PostBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

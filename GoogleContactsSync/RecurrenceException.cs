@@ -1,9 +1,9 @@
-﻿using System;
+﻿using Google.Apis.Calendar.v3.Data;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Outlook = Microsoft.Office.Interop.Outlook;
-using Google.GData.Calendar;
 
 namespace R.GoogleOutlookSync
 {
@@ -21,11 +21,13 @@ namespace R.GoogleOutlookSync
             this.OriginalDate = originalDate;
         }
 
-        internal RecurrenceException(EventEntry googleException, EventRecurrence parentRecurrence = null)
+        internal RecurrenceException(Event googleException, EventRecurrence parentRecurrence = null)
         {
-            this._parentRecurrence = parentRecurrence != null ? parentRecurrence : null;
-            this.OriginalDate = googleException.OriginalEvent.OriginalStartTime.StartTime;
-            this.Deleted = googleException.Status.Value == EventEntry.EventStatus.CANCELED_VALUE;
+            this._parentRecurrence = parentRecurrence ?? null;
+            this.OriginalDate = googleException.OriginalStartTime.DateTime.HasValue
+                ? googleException.OriginalStartTime.DateTime.Value
+                : DateTime.Parse(googleException.OriginalStartTime.Date);
+            this.Deleted = googleException.Status == "cancelled";
             if (!this.Deleted)
                 this.ModifiedEvent = new CalendarEvent(googleException);
         }

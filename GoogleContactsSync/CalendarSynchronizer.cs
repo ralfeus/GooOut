@@ -1,29 +1,33 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Outlook = Microsoft.Office.Interop.Outlook;
-using Google.GData.Calendar;
-using System.Windows.Forms;
-using Google.GData.Client;
-using System.Collections;
 using System.Runtime.InteropServices;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using System.IO;
-using System.Xml;
+using Google.Apis.Calendar.v3.Data;
+using Google.Apis.Calendar.v3;
+using Google.Apis.Requests;
+using System.Threading;
+using System.Net.Http;
+using Google.Apis.Services;
+using Google.Apis.Auth.OAuth2;
 
 namespace R.GoogleOutlookSync
 {
     internal partial class CalendarSynchronizer : ItemTypeSynchronizer
     {
         /// <summary>
+        /// Wrapper around common Google service for CalendarService
+        /// </summary>
+        private CalendarService CalendarService { get => (CalendarService)this._googleService; }
+        /// <summary>
         /// Represents calendar to synchronize with
         /// </summary>
-        CalendarEntry _googleCalendar;
-        string _googleCalendarFeedUrl;
+        Calendar _googleCalendar;
+        private IList<EventReminder> _defaultReminders;
         string _googleCalendarName;
+
         /// <summary>
         /// Represents folder in Outlook mailbox containing calendar items for synchronization
         /// </summary>
@@ -31,7 +35,7 @@ namespace R.GoogleOutlookSync
         /// <summary>
         /// Contains exceptions from recurrent events
         /// </summary>
-        Dictionary<string, List<EventEntry>> _googleExceptions;
+        Dictionary<string, List<Event>> _googleExceptions;
         new IEnumerable<FieldHandlers> _fieldHandlers;
         /// <summary>
         /// Contains 0:00 of next date after defined interval. Next date is not inclusive
@@ -40,26 +44,31 @@ namespace R.GoogleOutlookSync
         DateTime _rangeStart;
 
         internal CalendarSynchronizer(
-            string googleAuthToken,
+            UserCredential googleCredential,
             //Outlook.NameSpace outlookNamespace,
             string calendarFolderToSyncID)
         {
-            this._googleConnection = new CalendarService(Application.ProductName);
-            this._googleConnection.SetAuthenticationToken(googleAuthToken);
-            this._outlookCalendarFolderToSyncID = calendarFolderToSyncID;
-            this._googleExceptions = new Dictionary<string, List<EventEntry>>();
+            this._googleService = new CalendarService(new BaseClientService.Initializer()
+            {
+                HttpClientInitializer = googleCredential
+            });
 
+            this._outlookCalendarFolderToSyncID = calendarFolderToSyncID;
+            this._googleExceptions = new Dictionary<string, List<Event>>();
+            //this._googleBatchRequest = new BatchRequest(this.CalendarService);
+            
             this.LoadSettings();
-            var query = new CalendarQuery(Properties.Settings.Default.GoogleUrl_Calendar);
-            var calendars = GoogleUtilities.TryDo<AtomFeed>(() => this._googleConnection.Query(query));
+            var calendars = this.CalendarService.CalendarList.List().Execute().Items;
             // first load calendars synchronization settings to have Google calendar name to synchronize
             // in case no settings are loaded first found calendar will be used
-            foreach (var cal in calendars.Entries)
-                Logger.Log("Found calendar: " + cal.Title.Text, EventType.Information);
-            this._googleCalendar = (CalendarEntry)calendars.Entries.First(
-                cal => (cal.Title.Text == this._googleCalendarName) || String.IsNullOrEmpty(this._googleCalendarName));
-            this._googleCalendarFeedUrl = this._googleCalendar.Links.First(
-                link => (link.Rel == "alternate") && (link.Type == "application/atom+xml")).HRef.Content;
+            foreach (var cal in calendars)
+            {
+                Logger.Log("Found calendar: " + cal.Summary, EventType.Information);
+            }
+            var calendar = calendars.First(
+                cal => (cal.Summary == this._googleCalendarName) || String.IsNullOrEmpty(this._googleCalendarName));
+            this._googleCalendar = this.CalendarService.Calendars.Get(calendar.Id).Execute();
+            this._defaultReminders = calendar.DefaultReminders;
             /// Prepare list of all available field handlers
             this.InitFieldHandlers();
         }
@@ -69,13 +78,13 @@ namespace R.GoogleOutlookSync
         /// </summary>
         /// <param name="googleItem"></param>
         /// <returns></returns>
-        protected override DateTime GetLastModificationTime(AtomEntry googleItem)
+        protected override DateTime GetLastModificationTime(Event googleItem)
         {
-            if (this._googleExceptions.ContainsKey(((EventEntry)googleItem).EventId))
+            if (this._googleExceptions.ContainsKey(((Event)googleItem).Id))
                 return
                     new DateTime(Math.Max(
                         GoogleUtilities.GetLastModificationTime(googleItem).Ticks,
-                        this._googleExceptions[((EventEntry)googleItem).EventId].Max(exception => exception.Updated.Ticks)));
+                        this._googleExceptions[((Event)googleItem).Id].Max(exception => exception.Updated.Value.Ticks)));
             else
                 return GoogleUtilities.GetLastModificationTime(googleItem);
         }
@@ -124,19 +133,26 @@ namespace R.GoogleOutlookSync
 
         }
 
-        protected override ComparisonResult Compare(AtomEntry googleItem, object outlookItem)
+        protected override ComparisonResult Compare(Event googleItem, object item)
         {
             /// If IDs are same items are same. Then we can check whether they are identical
             /// If IDs are different items are different
             /// Aggregate will invoke each method in _fieldComparers list. Boolean AND will ensure all comparers return true
             //try
             //{
-                if (this.CompareIDs((EventEntry)googleItem, (Outlook.AppointmentItem)outlookItem))
+            Outlook.AppointmentItem appointment = (Outlook.AppointmentItem)item;
+                if (this.CompareIDs((Event)googleItem, appointment))
                 {
                     var fieldsAreSame =
                         this._fieldHandlers.Aggregate(
                             true,
-                            (res, handler) => res && (bool)handler.Comparer.Invoke(this, new object[] { googleItem, outlookItem }));
+                            (res, handler) => {
+                                Logger.Log(string.Format("Comparing '{0}' of {1} at {2}", handler.Comparer.Name, appointment.Subject, appointment.Start), EventType.Debug);
+                                var result = res && (bool)handler.Comparer.Invoke(this, new object[] { googleItem, appointment });
+                                Logger.Log(string.Format("\t{0}", result), EventType.Debug);
+                                return result;
+                            }
+                        );
                     //var fieldsAreSame = true;
                     //foreach (var fieldHandler in this._fieldHandlers)
                     //    fieldsAreSame &= (bool)fieldHandler.Comparer.Invoke(this, new object[] { googleItem, outlookItem });
@@ -154,13 +170,13 @@ namespace R.GoogleOutlookSync
             //}
         }
 
-        protected override bool IsItemValid(AtomEntry googleItem)
+        protected override bool IsItemValid(Event googleItem)
         {
             /// We try to create EventSchedule of item. If due to any reason (Exception) it's impossible
             /// we treat item as invalid
             try
             {
-                new EventSchedule((EventEntry)googleItem);
+                new EventSchedule((Event)googleItem);
             }
             catch (Exception)
             {
@@ -185,39 +201,18 @@ namespace R.GoogleOutlookSync
             {
                 try
                 {
-                    var query = new EventQuery(this._googleCalendarFeedUrl);
-                    query.ExtraParameters = String.Format(
-                        "showdeleted=false", //start-min={0}&start-max={1}&&singleevents=true
-                        this._rangeStart.ToString("yyyy-MM-ddTHH:mm:ss"),
-                        this._rangeEnd.ToString("yyyy-MM-ddTHH:mm:ss"));
-                    // Set the maximum number of results to return for the query.
-                    // Note: A GData server may choose to provide fewer results, but will never provide
-                    // more than the requested maximum.
-                    query.NumberToRetrieve = 100;
-                    query.StartIndex = 1;
-                    AtomFeed feed;
-                    // perform retrieving until there is nothing to retrieve
-                    do
-                    {
-                        // start retrieving from next item after last retrieved
-                        feed = this._googleConnection.Query(query);
-                        /// Add item either as primary event entry 
-                        /// or as exception of recurrence
-                        foreach (EventEntry googleItem in feed.Entries)
-                            if (googleItem.OriginalEvent == null)
-                                this.GoogleItems.Add(googleItem);
-                            else
-                            {
-                                if (!this._googleExceptions.ContainsKey(googleItem.OriginalEvent.IdOriginal))
-                                    this._googleExceptions.Add(googleItem.OriginalEvent.IdOriginal, new List<EventEntry>());
-                                this._googleExceptions[googleItem.OriginalEvent.IdOriginal].Add(googleItem);
-                            }
-                        query.StartIndex += feed.Entries.Count;
-                        // if last query returned no entries there is nothing to retrieve anymore
-                    } while (feed.Entries.Count != 0);
-                    /// Create a batch update feed for Google items
-                    if (this._googleBatchUpdateFeed == null)
-                        this._googleBatchUpdateFeed = feed.CreateBatchFeed(GDataBatchOperationType.update);
+                    var query = this.CalendarService.Events.List(this._googleCalendar.Id);
+                    query.TimeMin = this._rangeStart;
+                    query.TimeMax = this._rangeEnd;
+                    query.ShowDeleted = true;
+                    var events = query.Execute().Items;
+                    this.GoogleItems = events.Where(e => e.Status != "cancelled").ToList();
+                    foreach (var e in events.Where(e => !string.IsNullOrEmpty(e.RecurringEventId))) {
+                        if (!this._googleExceptions.ContainsKey(e.RecurringEventId)) {
+                            this._googleExceptions.Add(e.RecurringEventId, new List<Event>());
+                        }
+                        this._googleExceptions[e.RecurringEventId].Add(e);
+                    }
                     succeeded = true;
                 }
                 catch (Exception exc)
@@ -243,20 +238,22 @@ namespace R.GoogleOutlookSync
 
             while (item != null)
             {
+                Outlook.AppointmentItem tmpEvent;
                 // any MeetingItem is actually Appointment with special status. So we get correspondent appointmen
-                //if (item is Outlook.MeetingItem)
-                //    tmpEvent = ((Outlook.MeetingItem)item).GetAssociatedAppointment(false);
-                //else if (item is Outlook.AppointmentItem)
-                //    tmpEvent = (Outlook.AppointmentItem)item;
+                if (item is Outlook.MeetingItem)
+                    tmpEvent = ((Outlook.MeetingItem)item).GetAssociatedAppointment(false);
+                else if (item is Outlook.AppointmentItem)
+                    tmpEvent = item;
                 // it's also possible non-calendar item can be placed in the Calendar folder. We'll just ignore all such items
-                //else
-                //    continue;
-                //if ((tmpEvent.Start >= this._rangeStart) && (tmpEvent.Start < this._rangeEnd))
-                //{
+                else
+                    continue;
+                if ((tmpEvent.Start >= this._rangeStart) && (tmpEvent.Start < this._rangeEnd))
+                {
                     this.OutlookItems.Add(item);
-                //}
-                // release appoinment item since it's COM object 
+                }
+                //// release appoinment item since it's COM object 
                 //Marshal.ReleaseComObject(item);
+                //Marshal.ReleaseComObject(tmpEvent);
                 item = (Outlook.AppointmentItem)calendarItems.FindNext();
             }
             Marshal.ReleaseComObject(calendarItems);
@@ -289,6 +286,7 @@ namespace R.GoogleOutlookSync
         {
 
 #if DEBUG
+            Logger.Log("UpdateGoogleItem", EventType.Debug);
             var outlookItem = pair.Outlook;
             var googleItem = pair.Google;
 #endif
@@ -299,13 +297,28 @@ namespace R.GoogleOutlookSync
                     /// Here new Google event is created and saved into Google calendar
                     /// then it will be updated according to Outlook's original
                     /// If something wrong will happen during updating newly created Google event will be deleted
-                    pair.Google = new EventEntry();
-                    pair.Google.Service = this._googleConnection;
+                    pair.Google = new Event()
+                    {
+                        End = new EventDateTime(),
+                        ExtendedProperties = new Event.ExtendedPropertiesData()
+                        {
+                            Shared = new Dictionary<string, string>()
+                        },
+                        Location = "",
+                        Reminders = new Event.RemindersData()
+                        {
+                            //Overrides = new 
+                            UseDefault = false
+                        },
+                        Start = new EventDateTime()
+                    };
+                    //pair.Google.Service = this.CalendarService;
                     GoogleUtilities.SetOutlookID(pair.Google, OutlookUtilities.GetItemID(pair.Outlook));
                     try
                     {
-                        pair.Google = this._googleConnection.Insert(new Uri(this._googleCalendarFeedUrl), pair.Google);
-
+#if DEBUG
+                        Logger.Log("Setting event fields", EventType.Debug);
+#endif
                         foreach (var fieldHandler in this._fieldHandlers)
                         {
                             fieldHandler.Setter.Invoke(this, new object[] { 
@@ -313,29 +326,36 @@ namespace R.GoogleOutlookSync
                             pair.Outlook,
                             Target.Google});
                         }
-                        /// Queue item to backup for update
-                        //pair.Google.BatchData = new GDataBatchEntryData(GDataBatchOperationType.update);
-                        //this._googleBatchUpdateFeed.Entries.Add(pair.Google);
-                        /// The item must be updated before setting exceptions because batch operation order is set by Google itself
-                        /// Therefore it can come exception is attempted to be set before original item, which will cause the error
-                        /// May be later it will be revorked
-                        pair.Google.Update();
+#if DEBUG
+                        Logger.Log("Trying to create Google event", EventType.Debug);
+#endif
+                        pair.Google = this.CalendarService.Events.Insert(pair.Google, this._googleCalendar.Id).Execute();
+#if DEBUG
+                        Logger.Log(string.Format("New Google event with eventId {0} is created", pair.Google.Id), EventType.Debug);
+                        Logger.Log(Newtonsoft.Json.JsonConvert.SerializeObject(pair.Google), EventType.Debug);
+#endif
+                        /// When item is created it has an ID. 
+                        /// If it's recurrent all recurrence instances are created. 
+                        /// This gives a possibility to set recurrence exceptions.
+                        /// Earlier exceptions can't be set
+                        this.SetRecurrenceExceptions((Outlook.AppointmentItem)pair.Outlook, pair.Google);
                         /// As last point we set newly created Google event's ID to Outlook's item
                         OutlookUtilities.SetGoogleID(pair.Outlook, GoogleUtilities.GetItemID(pair.Google));
                         this.SaveOutlookItem(pair.Outlook);
                         this._syncResult.CreatedItems++;
                     }
-                    catch (Exception exc)
+                    catch (Exception exc )
                     {
-                        pair.Google.BatchData = new GDataBatchEntryData(GDataBatchOperationType.delete);
-                        this._googleBatchUpdateFeed.Entries.Add(pair.Google);
+                        ErrorHandler.Handle(exc);
+                        this._googleBatchRequest.Queue<Event>(this.CalendarService.Events.Delete(
+                            this._googleCalendar.Id, pair.Google.Id), BatchCallback);
                     }
                 }
                 else if (pair.SyncAction.Action == Action.Delete)
                 {
                     //pair.Google.Delete();
-                    pair.Google.BatchData = new GDataBatchEntryData(GDataBatchOperationType.delete);
-                    this._googleBatchUpdateFeed.Entries.Add(pair.Google);
+                    this._googleBatchRequest.Queue<Event>(this.CalendarService.Events.Delete(
+                        this._googleCalendar.Id, pair.Google.Id), BatchCallback);
                     this._syncResult.DeletedItems++;
                 }
                 else if (pair.SyncAction.Action == Action.Update)
@@ -353,13 +373,12 @@ namespace R.GoogleOutlookSync
                         pair.Outlook,
                         Target.Google});
                     }
-                    //pair.Google.Update();
-                    //pair.Google.BatchData = new GDataBatchEntryData(GDataBatchOperationType.update);
-                    //this._googleBatchUpdateFeed.Entries.Add(pair.Google);
-                    /// The item must be updated before setting exceptions because batch operation order is set by Google itself
-                    /// Therefore it can come exception is attempted to be set before original item, which will cause the error
-                    /// May be later it will be revorked
-                    pair.Google.Update();
+                    pair.Google = this.CalendarService.Events.Update(pair.Google, this._googleCalendar.Id, pair.Google.Id).Execute();
+                    /// When item is updated and it's became recurrent all recurrence instances are created. 
+                    /// This gives a possibility to set recurrence exceptions.
+                    /// Earlier exceptions can't be set
+                    this.SetRecurrenceExceptions((Outlook.AppointmentItem)pair.Outlook, pair.Google);
+
                     this._syncResult.UpdatedItems++;
                 }
             }
@@ -388,6 +407,14 @@ namespace R.GoogleOutlookSync
             }
         }
 
+        private void BatchCallback(Event content, RequestError error, int index, HttpResponseMessage message)
+        {
+            if (!message.IsSuccessStatusCode)
+            {
+                this._batchResult.Add(error);
+            }
+        }
+
         protected override void UpdateOutlookItem(ItemMatcher pair)
         {
 #if DEBUG
@@ -412,7 +439,7 @@ namespace R.GoogleOutlookSync
                     if (this._outlookCalendarFolderToSyncID != OutlookConnection.Namespace.GetDefaultFolder(Outlook.OlDefaultFolders.olFolderCalendar).EntryID)
                         OutlookUtilities.TryDo(() => outlookEvent.Move(OutlookConnection.Namespace.GetFolderFromID(this._outlookCalendarFolderToSyncID)));
                     GoogleUtilities.SetOutlookID(pair.Google, OutlookUtilities.GetItemID(outlookEvent));
-                    var res = pair.Google.Update();
+                    var res = this.CalendarService.Events.Update(pair.Google, this._googleCalendar.Id, pair.Google.Id);
                     Marshal.ReleaseComObject(outlookEvent);
                     this._syncResult.CreatedItems++;
                 }
@@ -444,7 +471,7 @@ namespace R.GoogleOutlookSync
             }
             catch (Exception exc)
             {
-                Logger.Log(String.Format("{0} {1} '{2}'. {3}", Properties.Resources.Error_ItemSynchronizationFailure, pair.SyncAction, pair.Google.Title.Text, ErrorHandler.BuildExceptionDescription(exc)), EventType.Error);
+                Logger.Log(String.Format("{0} {1} '{2}'. {3}", Properties.Resources.Error_ItemSynchronizationFailure, pair.SyncAction, pair.Google.Summary, ErrorHandler.BuildExceptionDescription(exc)), EventType.Error);
                 this._syncResult.ErrorItems++;
             }
         }
@@ -452,6 +479,86 @@ namespace R.GoogleOutlookSync
         protected override void SaveOutlookItem(object outlookItem)
         {
             ((Outlook.AppointmentItem)outlookItem).Save();
+        }
+
+        public override SyncResult Sync()
+        {
+            Logger.Log("Initializing " + this.GetType().Name, EventType.Debug);
+            this.Init();
+            LoadGoogleItems();
+            LoadOutlookItems();
+            Logger.Log(String.Format("Got {0} Google items and {1} Outlook items", this.GoogleItems.Count, this.OutlookItems.Count), EventType.Information);
+            this._outlookGoogleIDsCache = new Dictionary<object, string>(OutlookItems.Count);
+            Logger.Log("Comparing items", EventType.Debug);
+            this.CombineItems();
+            /// Because error items were marked as identical we should subtract errorous items from identical ones
+            this._syncResult.IdenticalItems -= this._syncResult.ErrorItems;
+
+            Logger.Log(String.Format("There are {0} items to update", this._itemsPairs.Count), EventType.Information);
+            Logger.Log("Updating items", EventType.Debug);
+            /// Update items
+            foreach (var pair in this._itemsPairs)
+            {
+                var go = (Event)pair.Google;
+                var startTime = pair.Google != null ? (pair.Google.Start.Date ?? pair.Google.Start.DateTime.Value.ToString("yyyy-MM-dd")) : "";
+                Logger.Log(String.Format(
+                    "Running action '{0}' on item '{1}' starting at {2}. Target: {3}",
+                    pair.SyncAction.Action,
+                    pair.Google == null ? ((Outlook.AppointmentItem)pair.Outlook).Subject : pair.Google.Summary,
+                    pair.Google == null ? ((Outlook.AppointmentItem)pair.Outlook).Start.ToString() : startTime,
+                    pair.SyncAction.Target), EventType.Debug);
+                try
+                {
+                    if (pair.SyncAction.Target == Target.Google)
+                        UpdateGoogleItem(pair);
+                    else
+                        UpdateOutlookItem(pair);
+                }
+                catch (COMException exc)
+                {
+                    if (exc.ErrorCode == unchecked((int)0x80010105))
+                    {
+                        Logger.Log(exc.Message, EventType.Error);
+                        this._syncResult.ErrorItems++;
+                        continue;
+                    }
+                    else
+                        throw exc;
+                }
+            }
+            /// Run batch update on all Google items requiring update
+            this._googleBatchRequest.ExecuteAsync(CancellationToken.None).Wait();
+            /// Extract errors from batch result and log it
+            var errors =
+                from entry in this._batchResult
+                where
+                    entry.Code != 200 &&
+                    entry.Code != 201
+                select entry.Message;
+            foreach (var error in errors)
+                Logger.Log(error, EventType.Error);
+
+            return this._syncResult;
+        }
+
+        internal override void Unpair()
+        {
+            this.Init();
+            this.LoadGoogleItems();
+            var batch = new BatchRequest(this.CalendarService);
+            foreach (var googleItem in this.GoogleItems)
+            {
+                GoogleUtilities.RemoveOutlookID(googleItem);
+                batch.Queue<Event>(this.CalendarService.Events.Update(googleItem, this._googleCalendar.Id, googleItem.Id), BatchCallback);
+            }
+            batch.ExecuteAsync(CancellationToken.None).Wait();
+
+            this.LoadOutlookItems();
+            foreach (var outlookItem in this.OutlookItems)
+            {
+                OutlookUtilities.RemoveGoogleID(outlookItem);
+                this.SaveOutlookItem(outlookItem);
+            }
         }
     }
 }

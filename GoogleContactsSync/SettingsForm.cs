@@ -1,7 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
@@ -10,30 +7,28 @@ using System.Threading;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
 using System.IO;
-using System.Runtime.Remoting;
 using System.Runtime.InteropServices;
-using System.Management;
 using System.Net;
-using R.Utilities;
-using System.Reflection;
+//using R.Utilities;
 using System.Globalization;
 using Outlook = Microsoft.Office.Interop.Outlook;
 
 namespace R.GoogleOutlookSync
 {
-	internal partial class SettingsForm : Form
+    internal partial class SettingsForm : Form
 	{
-		private Syncronizer _sync;
-        internal Syncronizer Synchronizer
+		private Synchronizer _sync;
+        internal Synchronizer Synchronizer
         {
             get
             {
                 if (this._sync == null)
                 {
-                    this._sync = new Syncronizer();
-                    _sync.DuplicatesFound += new Syncronizer.DuplicatesFoundHandler(OnDuplicatesFound);
-                    _sync.ErrorEncountered += new Syncronizer.ErrorNotificationHandler(OnErrorEncountered);
-                    this._sync.SyncProfile = this.tbSyncProfile.Text;
+                    this._sync = new Synchronizer();
+                    _sync.DuplicatesFound += new Synchronizer.DuplicatesFoundHandler(OnDuplicatesFound);
+                    _sync.ErrorEncountered += new Synchronizer.ErrorNotificationHandler(OnErrorEncountered);
+                    //this._sync.SyncProfile = this.tbSyncProfile.Text;
+                    this._sync.SyncProfile = this.cmbOutlookProfiles.Text;
                 }
                 return this._sync;
             }
@@ -44,7 +39,6 @@ namespace R.GoogleOutlookSync
 		private bool requestClose = false;
         private bool boolShowBalloonTip = true;
         private LogForm _log = new LogForm();
-        private IWebProxy _systemProxy = new WebProxy();
         private Thread _syncThread;
         private string _calendarFolderToSyncID;
 
@@ -70,7 +64,7 @@ namespace R.GoogleOutlookSync
             this.tbtnProxy.Tag = this.pnlProxy;
             this.tbtnGeneral.PerformClick();
 
-            ContactsMatcher.NotificationReceived += new ContactsMatcher.NotificationHandler(OnNotificationReceived);
+            //ContactsMatcher.NotificationReceived += new ContactsMatcher.NotificationHandler(OnNotificationReceived);
             //NotesMatcher.NotificationReceived += new NotesMatcher.NotificationHandler(OnNotificationReceived);
 
             this.InitializeLanguages();
@@ -128,66 +122,66 @@ namespace R.GoogleOutlookSync
                 this.cmbLanguage.SelectedItem = CultureInfo.GetCultureInfo("en");
         }
 
-        private UpdateResult CheckUpdates()
-        {
-            try
-            {
-                var result = Updater.Update(
-                    String.Format("{0}/{1}/{2}",
-                    Properties.Settings.Default.URL_Update,
-                    Assembly.GetExecutingAssembly().GetName().Version.Major,
-                    Utilities.GetAssemblyArchitecture().ToString().ToLower()));
-                //var result = Updater.Update("http://stone/download/1/");
-                if (result == UpdateResult.UpToDate)
-                {
-#if DEBUG
-                    Logger.Log("The application is up to date", EventType.Information);
-#endif
-                }
-                else if (result == UpdateResult.Restart)
-                {
-                    try
-                    {
-                        Logger.Log("The application is updated. Restart is needed", EventType.Information);
-                    }
-                    catch (Exception)
-                    { }
-                    MessageBox.Show("The application is updated. Restart is needed", Application.ProductName);
-                    this.Restart();
-                }
-                else if (result == UpdateResult.Success)
-                {
-                    try
-                    {
-                        Logger.Log("The application is updated successfully. Current version is " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version, EventType.Information);
-                    }
-                    catch (Exception)
-                    { }
-                    MessageBox.Show("The application is updated successfully. Current version is " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version, Application.ProductName);
-                }
-                else if (result == UpdateResult.Fail)
-                {
-                    try
-                    {
-                        Logger.Log("Application failed to update.", EventType.Error);
-                    }
-                    catch (Exception)
-                    { }
-                }
-                else if (result == UpdateResult.AccessDenied)
-                {
-                    if (MessageBox.Show(Properties.Resources.Confirm_RestartAsAdminNeeded, Application.ProductName, MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button1) == DialogResult.Yes)
-                        this.Restart(true);
-                }
+//        private UpdateResult CheckUpdates()
+//        {
+//            try
+//            {
+//                var result = Updater.Update(
+//                    String.Format("{0}/{1}/{2}",
+//                    Properties.Settings.Default.URL_Update,
+//                    Assembly.GetExecutingAssembly().GetName().Version.Major,
+//                    Utilities.GetAssemblyArchitecture().ToString().ToLower()));
+//                //var result = Updater.Update("http://stone/download/1/");
+//                if (result == UpdateResult.UpToDate)
+//                {
+//#if DEBUG
+//                    Logger.Log("The application is up to date", EventType.Information);
+//#endif
+//                }
+//                else if (result == UpdateResult.Restart)
+//                {
+//                    try
+//                    {
+//                        Logger.Log("The application is updated. Restart is needed", EventType.Information);
+//                    }
+//                    catch (Exception)
+//                    { }
+//                    MessageBox.Show("The application is updated. Restart is needed", Application.ProductName);
+//                    this.Restart();
+//                }
+//                else if (result == UpdateResult.Success)
+//                {
+//                    try
+//                    {
+//                        Logger.Log("The application is updated successfully. Current version is " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version, EventType.Information);
+//                    }
+//                    catch (Exception)
+//                    { }
+//                    MessageBox.Show("The application is updated successfully. Current version is " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version, Application.ProductName);
+//                }
+//                else if (result == UpdateResult.Fail)
+//                {
+//                    try
+//                    {
+//                        Logger.Log("Application failed to update.", EventType.Error);
+//                    }
+//                    catch (Exception)
+//                    { }
+//                }
+//                else if (result == UpdateResult.AccessDenied)
+//                {
+//                    if (MessageBox.Show(Properties.Resources.Confirm_RestartAsAdminNeeded, Application.ProductName, MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button1) == DialogResult.Yes)
+//                        this.Restart(true);
+//                }
 
-                return result;
-            }
-            catch (Exception exc)
-            {
-                ErrorHandler.Handle(exc);
-                return UpdateResult.Fail;
-            }
-        }
+//                return result;
+//            }
+//            catch (Exception exc)
+//            {
+//                ErrorHandler.Handle(exc);
+//                return UpdateResult.Fail;
+//            }
+//        }
 
         private void Restart(bool asAdmin = false)
         {
@@ -238,9 +232,9 @@ namespace R.GoogleOutlookSync
 
                         if (regKeyAppRoot.GetValue("ProxyUsername") != null)
                         {
-                            this.UserName.Text = regKeyAppRoot.GetValue("ProxyUsername") as string;
+                            this.txtProxyUserName.Text = regKeyAppRoot.GetValue("ProxyUsername") as string;
                             if (regKeyAppRoot.GetValue("ProxyPassword") != null)
-                                this.Password.Text = Encryption.DecryptPassword(this.UserName.Text, regKeyAppRoot.GetValue("ProxyPassword") as string);
+                                this.txtProxyPassword.Text = Encryption.DecryptPassword(this.txtProxyUserName.Text, regKeyAppRoot.GetValue("ProxyPassword") as string);
                         }
                     }
                 }
@@ -266,13 +260,9 @@ namespace R.GoogleOutlookSync
                 _syncOption = (SyncOption)regKeyAppRoot.GetValue("SyncOption");
                 SetSyncOption((int)_syncOption);
             }
-            if (regKeyAppRoot.GetValue("SyncProfile") != null)
-                tbSyncProfile.Text = (string)regKeyAppRoot.GetValue("SyncProfile");
-            if (regKeyAppRoot.GetValue("Username") != null)
+            if (regKeyAppRoot.GetValue("GoogleAccountName") != null)
             {
-                UserName.Text = regKeyAppRoot.GetValue("Username") as string;
-                if (regKeyAppRoot.GetValue("Password") != null)
-                    Password.Text = Encryption.DecryptPassword(UserName.Text, regKeyAppRoot.GetValue("Password") as string);
+                this.txtGoogleAccountName.Text = this._googleAccountName = regKeyAppRoot.GetValue("GoogleAccountName") as string;
             }
             if (regKeyAppRoot.GetValue("AutoSync") != null)
                 this.SetAutoSync(Convert.ToBoolean(regKeyAppRoot.GetValue("AutoSync")));
@@ -304,11 +294,11 @@ namespace R.GoogleOutlookSync
             OutlookConnection.Disconnect();
             //autoSyncCheckBox_CheckedChanged(null, null);
 
-            if (!Properties.Settings.Default.ApplicationAllowedToRun)
-            {
-                btSyncCalendar.Checked = false;
-                btSyncCalendar.Enabled = false;
-            }
+            //if (!Properties.Settings.Default.ApplicationAllowedToRun)
+            //{
+            //    btSyncCalendar.Checked = false;
+            //    btSyncCalendar.Enabled = false;
+            //}
 		}
 
         private void SetCalendarFolder(string calendarFolderID)
@@ -348,11 +338,11 @@ namespace R.GoogleOutlookSync
                 regKeyAppRoot.SetValue("ProxyAuth", this.Authorization.Checked);
                 if (this.Authorization.Checked)
                 {
-                    if (!string.IsNullOrEmpty(this.UserName.Text))
+                    if (!string.IsNullOrEmpty(this.txtProxyUserName.Text))
                     {
-                        regKeyAppRoot.SetValue("ProxyUsername", this.UserName.Text);
-                        if (!string.IsNullOrEmpty(this.Password.Text))
-                            regKeyAppRoot.SetValue("ProxyPassword", Encryption.EncryptPassword(this.UserName.Text, this.Password.Text));
+                        regKeyAppRoot.SetValue("ProxyUsername", this.txtProxyUserName.Text);
+                        if (!string.IsNullOrEmpty(this.txtProxyPassword.Text))
+                            regKeyAppRoot.SetValue("ProxyPassword", Encryption.EncryptPassword(this.txtProxyUserName.Text, this.txtProxyPassword.Text));
                     }
                 }
             }
@@ -363,18 +353,13 @@ namespace R.GoogleOutlookSync
 			RegistryKey regKeyAppRoot = Registry.CurrentUser.CreateSubKey(Properties.Settings.Default.ApplicationRegistryKey);
             regKeyAppRoot.SetValue("Language", ((CultureInfo)this.cmbLanguage.SelectedItem).LCID, RegistryValueKind.DWord);
 			regKeyAppRoot.SetValue("SyncOption", (int)_syncOption);
-			if (!string.IsNullOrEmpty(tbSyncProfile.Text))
-				regKeyAppRoot.SetValue("SyncProfile", tbSyncProfile.Text);
-			if (!string.IsNullOrEmpty(UserName.Text))
-			{
-				regKeyAppRoot.SetValue("Username", UserName.Text);
-				if (!string.IsNullOrEmpty(Password.Text))
-					regKeyAppRoot.SetValue("Password", Encryption.EncryptPassword(UserName.Text, Password.Text));
-			}
+            if (!string.IsNullOrEmpty(this._googleAccountName))
+            {
+                regKeyAppRoot.SetValue("GoogleAccountName", this._googleAccountName);
+            }
             regKeyAppRoot.SetValue("AutoSync", this.mniAutoSync.Checked);
 			regKeyAppRoot.SetValue("AutoSyncInterval", autoSyncInterval.Value.ToString());
 			regKeyAppRoot.SetValue("ReportSyncResult", reportSyncResultCheckBox.Checked);
-			//regKeyAppRoot.SetValue("SyncDeletion", btSyncDelete.Checked);
             regKeyAppRoot.SetValue("SyncCalendar", btSyncCalendar.Checked);
             regKeyAppRoot.SetValue("SyncContacts", btSyncContacts.Checked);
             //regKeyAppRoot.SetValue("SyncNotes", btSyncNotes.Checked);
@@ -388,15 +373,14 @@ namespace R.GoogleOutlookSync
             {
                 try
                 {
-                    /// Store system proxy settings in order to be able to restore it in case of necessity
-                    this._systemProxy = WebRequest.DefaultWebProxy;
-
-                    var myProxy = new WebProxy(this.Address.Text, Convert.ToInt16(Port.Text));
-                    myProxy.BypassProxyOnLocal = false;
+                    var myProxy = new WebProxy(this.Address.Text, Convert.ToInt16(Port.Text))
+                    {
+                        BypassProxyOnLocal = true
+                    };
 
                     if (this.Authorization.Checked)
                     {
-                        myProxy.Credentials = new NetworkCredential(this.UserName.Text, this.Password.Text);
+                        myProxy.Credentials = new NetworkCredential(this.txtProxyUserName.Text, this.txtProxyPassword.Text);
                     }
                     WebRequest.DefaultWebProxy = myProxy;
                 }
@@ -405,25 +389,23 @@ namespace R.GoogleOutlookSync
                     ErrorHandler.Handle(ex);
                 }
             }
-            else // to do set defaul system proxy
-                WebRequest.DefaultWebProxy = this._systemProxy;
+            else // to do set default system proxy
+                WebRequest.DefaultWebProxy = WebRequest.GetSystemWebProxy();
         }
 
 		private bool ValidCredentials
 		{
 			get
 			{
-				bool userNameIsValid = Regex.IsMatch(UserName.Text, @"^(?'id'[a-z0-9\'\%\._\+\-]+)@(?'domain'[a-z0-9\'\%\._\+\-]+)\.(?'ext'[a-z]{2,6})$", RegexOptions.IgnoreCase);
-				bool passwordIsValid = Password.Text.Length != 0;
-				bool syncProfileNameIsValid = tbSyncProfile.Text.Length != 0;
+				//bool userNameIsValid = Regex.IsMatch(UserName.Text, @"^(?'id'[a-z0-9\'\%\._\+\-]+)@(?'domain'[a-z0-9\'\%\._\+\-]+)\.(?'ext'[a-z]{2,6})$", RegexOptions.IgnoreCase);
+				bool syncProfileNameIsValid = cmbOutlookProfiles.Text.Length != 0;
 
-				setBgColor(UserName, userNameIsValid);
-				setBgColor(Password, passwordIsValid);
-				setBgColor(tbSyncProfile, syncProfileNameIsValid);
-				return userNameIsValid && passwordIsValid && syncProfileNameIsValid;
+				//setBgColor(UserName, userNameIsValid);
+				SetBgColor(cmbOutlookProfiles, syncProfileNameIsValid);
+				return /*userNameIsValid && passwordIsValid &&*/ syncProfileNameIsValid;
 			}
 		}
-		private void setBgColor(TextBox box, bool isValid)
+		private void SetBgColor(Control box, bool isValid)
 		{
 			if (!isValid)
 				box.BackColor = Color.LightPink;
@@ -485,11 +467,9 @@ namespace R.GoogleOutlookSync
                 this.Synchronizer.SyncContacts = this.btSyncContacts.Checked;
                 //_sync.SyncNotes = false;
 
-                if (!this.Synchronizer.SyncContacts /*&& !_sync.SyncNotes*/ && !this.Synchronizer.SyncCalendar)
-                    throw new NoDataToSyncronizeSpecifiedException("Neither calendar nor contacts are selected on for syncing. Please choose at least one option. Sync aborted!");
 
 
-                this.Synchronizer.LoginToGoogle(UserName.Text, Password.Text);
+                this.LoginToGoogle();
                 //_sync.LoginToOutlook();
 
                 this.Synchronizer.Sync();
@@ -534,24 +514,6 @@ namespace R.GoogleOutlookSync
                 Logger.Log(message, EventType.Error);
                 Program.Instance.ShowBalloonToolTip("Error", message, ToolTipIcon.Error, 5000);
             }
-            catch (Google.GData.Client.GDataRequestException ex)
-            {
-                SetLastSyncText(Properties.Resources.Notification_SyncFailed);
-                notifyIcon.Text = Application.ProductName + "\n" + Properties.Resources.Notification_SyncFailed;
-
-                string responseString = (null != ex.InnerException) ? ex.ResponseString : ex.Message;
-
-                if (ex.InnerException is System.Net.WebException)
-                {
-                    string message = Properties.Resources.Error_ConnectionFailure + "\n" + ((System.Net.WebException)ex.InnerException).Message + "\r\n" + responseString;
-                    Logger.Log(message, EventType.Warning);
-                    Program.Instance.ShowBalloonToolTip("Error", message, ToolTipIcon.Error, 5000);
-                }
-                else
-                {
-                    ErrorHandler.Handle(ex);
-                }
-            }
             catch (NoDataToSyncronizeSpecifiedException)
             {
                 MessageBox.Show(Properties.Resources.Error_NoDataToSyncronizeSpecified, Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -561,6 +523,24 @@ namespace R.GoogleOutlookSync
             catch (ObjectDisposedException) { }
             catch (Exception ex)
             {
+                /// Some Google exception. Couldn't find analog so far
+                //SetLastSyncText(Properties.Resources.Notification_SyncFailed);
+                //notifyIcon.Text = Application.ProductName + "\n" + Properties.Resources.Notification_SyncFailed;
+
+                //string responseString = (null != ex.InnerException) ? ex.ResponseString : ex.Message;
+
+                //if (ex.InnerException is System.Net.WebException)
+                //{
+                //    string message = Properties.Resources.Error_ConnectionFailure + "\n" + ((System.Net.WebException)ex.InnerException).Message + "\r\n" + responseString;
+                //    Logger.Log(message, EventType.Warning);
+                //    Program.Instance.ShowBalloonToolTip("Error", message, ToolTipIcon.Error, 5000);
+                //}
+                //else
+                //{
+                //    ErrorHandler.Handle(ex);
+                //}
+
+
                 Logger.Log("The error occured, which was not caught by Synchronizer. Probably it has occurred in \"finally\" section", EventType.Debug);
                 SetLastSyncText(Properties.Resources.Notification_SyncFailed);
                 notifyIcon.Text = Application.ProductName + "\n" + Properties.Resources.Notification_SyncFailed;
@@ -721,7 +701,8 @@ namespace R.GoogleOutlookSync
         private const int WM_WTSSESSION_CHANGE = 0x02B1;
         private const int WTS_SESSION_LOCK = 0x7;
         private const int WTS_SESSION_UNLOCK = 0x8;
-        
+        private string _googleAccountName;
+
         /*
         protected void OnSessionLock()
         {
@@ -886,7 +867,7 @@ namespace R.GoogleOutlookSync
                 this.Synchronizer.SyncContacts = btSyncContacts.Checked;
                 this.Synchronizer.SyncCalendar = btSyncCalendar.Checked;
 
-				this.Synchronizer.LoginToGoogle(UserName.Text, Password.Text);
+				this.LoginToGoogle();
 				//this.Synchronizer.LoginToOutlook();
                 //this.Synchronizer.SyncProfile = tbSyncProfile.Text;
 
@@ -970,16 +951,16 @@ namespace R.GoogleOutlookSync
 
 		private void SettingsForm_Load(object sender, EventArgs e)
 		{
-            if ((this.CheckUpdates() != UpdateResult.Success) && (this.CheckUpdates() != UpdateResult.UpToDate))
-                return;
+            //if ((this.CheckUpdates() != UpdateResult.Success) && (this.CheckUpdates() != UpdateResult.UpToDate))
+            //    return;
 
-			if (string.IsNullOrEmpty(UserName.Text) ||
-				string.IsNullOrEmpty(Password.Text) ||
-				string.IsNullOrEmpty(tbSyncProfile.Text))
+			if (/*string.IsNullOrEmpty(UserName.Text) ||
+				string.IsNullOrEmpty(Password.Text) || */
+				string.IsNullOrEmpty(cmbOutlookProfiles.Text))
 			{
 				// this is the first load, show form
 				ShowForm();
-				UserName.Focus();
+				//UserName.Focus();
 			}
 			else
 				HideForm();
@@ -1020,11 +1001,11 @@ namespace R.GoogleOutlookSync
 			//DeleteDuplicatesForm f = new DeleteDuplicatesForm(_sync
 		}
 
-		private void tbSyncProfile_TextChanged(object sender, EventArgs e)
-		{
-			ValidateSyncButton();
-            this.Synchronizer.SyncProfile = this.tbSyncProfile.Text;
-		}        
+		//private void tbSyncProfile_TextChanged(object sender, EventArgs e)
+		//{
+		//	ValidateSyncButton();
+  //          this.Synchronizer.SyncProfile = this.tbSyncProfile.Text;
+		//}        
 
 		private void hideButton_Click(object sender, EventArgs e)
 		{
@@ -1059,15 +1040,15 @@ namespace R.GoogleOutlookSync
 
         private bool ValidateProxySettings()
         {
-            bool userNameIsValid = Regex.IsMatch(this.txtProxyUserName.Text, @"^(?'id'[a-z0-9\\\/\@\'\%\._\+\-]+)$", RegexOptions.IgnoreCase);
+            bool userNameIsValid = Regex.IsMatch(this.txtProxyUserName.Text, @"^(?'id'[a-z0-9\\\/\@\'\%\._\+\- ]+)$", RegexOptions.IgnoreCase);
             bool passwordIsValid = this.txtProxyPassword.Text.Length != 0;
             bool AddressIsValid = Regex.IsMatch(this.Address.Text, @"^(?'url'[\w\d#@%;$()~_?\\\.&]+)$", RegexOptions.IgnoreCase);
             bool PortIsValid = Regex.IsMatch(this.Port.Text, @"^(?'port'[0-9]{2,6})$", RegexOptions.IgnoreCase);
 
-            setBgColor(this.txtProxyUserName, userNameIsValid);
-            setBgColor(this.txtProxyPassword, passwordIsValid);
-            setBgColor(this.Address, AddressIsValid);
-            setBgColor(this.Port, PortIsValid);
+            SetBgColor(this.txtProxyUserName, userNameIsValid);
+            SetBgColor(this.txtProxyPassword, passwordIsValid);
+            SetBgColor(this.Address, AddressIsValid);
+            SetBgColor(this.Port, PortIsValid);
             return (userNameIsValid && passwordIsValid || !Authorization.Checked) && AddressIsValid && PortIsValid || SystemProxy.Checked;
         }
 
@@ -1137,22 +1118,22 @@ namespace R.GoogleOutlookSync
 
         private void lnkCheckUpdates_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            var result = this.CheckUpdates();
-            switch (result)
-            {
-                case UpdateResult.Fail:
-                    Logger.Log(Properties.Resources.Notification_UpdateFailure, EventType.Warning);
-                    break;
-                case UpdateResult.Restart:
-                    Logger.Log(Properties.Resources.Notification_UpdateRestartNeeded, EventType.Information);
-                    break;
-                case UpdateResult.Success:
-                    Logger.Log(Properties.Resources.Notification_UpdateSuccess, EventType.Information);
-                    break;
-                case UpdateResult.UpToDate:
-                    MessageBox.Show(Properties.Resources.Notification_UpdateUpToDate, Application.ProductName);
-                    break;
-            }
+            //var result = this.CheckUpdates();
+            //switch (result)
+            //{
+            //    case UpdateResult.Fail:
+            //        Logger.Log(Properties.Resources.Notification_UpdateFailure, EventType.Warning);
+            //        break;
+            //    case UpdateResult.Restart:
+            //        Logger.Log(Properties.Resources.Notification_UpdateRestartNeeded, EventType.Information);
+            //        break;
+            //    case UpdateResult.Success:
+            //        Logger.Log(Properties.Resources.Notification_UpdateSuccess, EventType.Information);
+            //        break;
+            //    case UpdateResult.UpToDate:
+            //        MessageBox.Show(Properties.Resources.Notification_UpdateUpToDate, Application.ProductName);
+            //        break;
+            //}
         }
 
         private void cmbLanguage_SelectedValueChanged(object sender, EventArgs e)
@@ -1207,5 +1188,38 @@ namespace R.GoogleOutlookSync
         {
             this.SetOutlookProfile(cmbOutlookProfiles.Text);
         }
-	}
+
+        private void lnkGoogleLogon_Click(object sender, EventArgs e)
+        {
+            this.LoginToGoogle();
+        }
+
+        private void LoginToGoogle()
+        {
+            if (this.IsGoogleAccountValid())
+            {
+                this.Synchronizer.LoginToGoogle(this._googleAccountName);
+            }
+        }
+
+        private bool IsGoogleAccountValid()
+        {
+            return 
+                !string.IsNullOrEmpty(this._googleAccountName) && 
+                (Regex.IsMatch(this._googleAccountName, @"[\w!#$%&'*+\-\/=?\^_`{|}~][\w!#$%&'*+\-\/=?\^_`{|}~\.]*[\w!#$%&'*+\-\/=?\^_`{|}~]@[\w!#$%&'*+\-\/=?\^_`{|}~][\w!#$%&'*+\-\/=?\^_`{|}~\.]*"));
+        }
+
+        private void txtGoogleAccountName_TextChanged(object sender, EventArgs e)
+        {
+            this._googleAccountName = this.txtGoogleAccountName.Text;
+            if (IsGoogleAccountValid())
+            {
+                SetBgColor(txtGoogleAccountName, true);
+            }
+            else
+            {
+                SetBgColor(txtGoogleAccountName, false);
+            }
+        }
+    }
 }

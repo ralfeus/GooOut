@@ -99,4 +99,12 @@ namespace R.GoogleOutlookSync
         Declined = 4,
         NoResponse = 5
     }
+
+    internal enum AttendeeType
+    {
+        Required,
+        Optional,
+        Organizer,
+        Resource
+    }
 }

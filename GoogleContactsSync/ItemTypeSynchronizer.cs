@@ -3,92 +3,40 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Outlook = Microsoft.Office.Interop.Outlook;
-using GoogleConn = Google.GData.Client;
 using System.Collections;
 using System.Runtime.InteropServices;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using Google.Apis.Calendar.v3.Data;
+using Google.Apis.Calendar.v3;
+using Google.Apis.Requests;
+using Google.Apis.Services;
 
 namespace R.GoogleOutlookSync
 {
     internal abstract class ItemTypeSynchronizer
     {
-        private Dictionary<object, string> _outlookGoogleIDsCache;
+        protected Dictionary<object, string> _outlookGoogleIDsCache;
 
         protected IEnumerable<FieldHandlers> _fieldHandlers;
-        protected GoogleConn.AtomFeed _googleBatchUpdateFeed;
-        protected GoogleConn.Service _googleConnection;
-        protected List<ItemMatcher> _itemsPairs;
-        protected List<GoogleConn.AtomEntry> GoogleItems { get; set; }
-        protected List<object> OutlookItems { get; set; }
+        protected IList<ItemMatcher> _itemsPairs;
+        protected IList<Event> GoogleItems { get; set; }
+        protected IList<object> OutlookItems { get; set; }
+
+        protected BaseClientService _googleService;
+        protected BatchRequest _googleBatchRequest;
+        protected IList<RequestError> _batchResult;
         protected SyncResult _syncResult = new SyncResult();
 
-        public SyncResult Sync()
+
+
+
+        protected void Init()
         {
-            Logger.Log("Initializing " + this.GetType().Name, EventType.Debug);
-            this.Init();
-            LoadGoogleItems();
-            LoadOutlookItems();
-            Logger.Log(String.Format("Got {0} Google items and {1} Outlook items", this.GoogleItems.Count, this.OutlookItems.Count), EventType.Information);
-            this._outlookGoogleIDsCache = new Dictionary<object, string>(OutlookItems.Count);
-            Logger.Log("Comparing items", EventType.Debug);
-            this.CombineItems();
-            /// Because error items were marked as identical we should subtract errorous items from identical ones
-            this._syncResult.IdenticalItems -= this._syncResult.ErrorItems;
-
-            Logger.Log(String.Format("There are {0} items to update", this._itemsPairs.Count), EventType.Information);
-            Logger.Log("Updating items", EventType.Debug);
-            /// Update items
-            foreach (var pair in this._itemsPairs)
-            {
-                var go = (Google.GData.Calendar.EventEntry)pair.Google;
-                Google.GData.Extensions.ExtensionCollection<Google.GData.Extensions.When> times = null;
-                if (go != null)
-                    times = go.Times;
-                Logger.Log(String.Format(
-                    "Running action '{0}' on item '{1}' starting at {2}. Target: {3}",
-                    pair.SyncAction.Action,
-                    pair.Google == null ? ((Outlook.AppointmentItem)pair.Outlook).Subject : pair.Google.Title.Text,
-                    pair.Google == null ? ((Outlook.AppointmentItem)pair.Outlook).Start.ToString() : (times.Count > 0 ? times[0].StartTime.ToString() : Regex.Match("DTSTART=(.*)\r", go.Recurrence.Value).Groups[1].Value),
-                    pair.SyncAction.Target), EventType.Debug);
-                try
-                {
-                    if (pair.SyncAction.Target == Target.Google)
-                        UpdateGoogleItem(pair);
-                    else
-                        UpdateOutlookItem(pair);
-                }
-                catch (COMException exc)
-                {
-                    if (exc.ErrorCode == unchecked((int)0x80010105))
-                    {
-                        Logger.Log(exc.Message, EventType.Error);
-                        this._syncResult.ErrorItems++;
-                        continue;
-                    }
-                    else
-                        throw exc;
-                }
-            }
-            /// Run batch update on all Google items requiring update
-            var result = this._googleConnection.Batch(this._googleBatchUpdateFeed, new Uri(this._googleBatchUpdateFeed.Batch));
-            /// Extract errors from batch result and log it
-            var errors =
-                from entry in result.Entries
-                where
-                    entry.BatchData.Status.Code != 200 &&
-                    entry.BatchData.Status.Code != 201
-                select entry.BatchData.Status.Reason;
-            foreach (var error in errors)
-                Logger.Log(error, EventType.Error);
-
-            return this._syncResult;
-        }
-
-        private void Init()
-        {
-            this.GoogleItems = new List<GoogleConn.AtomEntry>();
+            this.GoogleItems = new List<Event>();
             this.OutlookItems = new List<object>();
+            this._googleBatchRequest = new BatchRequest(this._googleService);
+            this._batchResult = new List<RequestError>();
             //this.InitFieldHandlers();
         }
 
@@ -130,8 +78,8 @@ namespace R.GoogleOutlookSync
                 //    ((FieldHandler)comparerMethod.GetCustomAttributes(false).First(attr => attr is FieldComparer)).Field equals
                 //    ((FieldHandler)getterMethod.GetCustomAttributes(false).First(attr => attr is FieldGetter)).Field
                 select new FieldHandlers(
-                    (Func<GoogleConn.AtomEntry, object, bool>)Delegate.CreateDelegate(typeof(Func<GoogleConn.AtomEntry, object, bool>), this, comparerMethod.Name),
-                    (Action<GoogleConn.AtomEntry, object, Target>)Delegate.CreateDelegate(typeof(Action<GoogleConn.AtomEntry, object, Target>), this, setterMethod.Name));
+                    (Func<Event, object, bool>)Delegate.CreateDelegate(typeof(Func<Event, object, bool>), this, comparerMethod.Name),
+                    (Action<Event, object, Target>)Delegate.CreateDelegate(typeof(Action<Event, object, Target>), this, setterMethod.Name));
             ComparerDelegate test;
             foreach (var method in comparerMethods)
                 test = (ComparerDelegate)Delegate.CreateDelegate(typeof(ComparerDelegate), this, method.Name);
@@ -153,7 +101,7 @@ namespace R.GoogleOutlookSync
                 Logger.Log(String.Format("Checking Outlook item {0} of {1}", ++counter, outlookItemsCount), EventType.Debug);
                 noFurtherCheckNeeded = false;
 
-                foreach (var googleItem in new List<GoogleConn.AtomEntry>(this.GoogleItems))
+                foreach (var googleItem in new List<Event>(this.GoogleItems))
                 {
                     try
                     {
@@ -161,19 +109,19 @@ namespace R.GoogleOutlookSync
                     }
                     catch (UnsynchronizableItemException exc)
                     {
-                        Logger.Log(exc.Message + (exc.ItemType == Target.Google ? googleItem.Title.Text : OutlookUtilities.GetItemSubject(outlookItem)), EventType.Warning);
+                        Logger.Log(exc.Message + (exc.ItemType == Target.Google ? googleItem.Summary : OutlookUtilities.GetItemSubject(outlookItem)), EventType.Warning);
                         /// if already paired items is impossible to synchronized due to some reason
                         /// we treat them as identical
                         this._syncResult.ErrorItems++;
                         itemsComparisonResult = ComparisonResult.Identical;
-                        Logger.Log(String.Format("While matching Google item '{0}' and Outlook item '{1}' the error has happened.", googleItem.Title.Text, OutlookUtilities.GetItemSubject(outlookItem)), EventType.Debug);
+                        Logger.Log(String.Format("While matching Google item '{0}' and Outlook item '{1}' the error has happened.", googleItem.Summary, OutlookUtilities.GetItemSubject(outlookItem)), EventType.Debug);
                     }
                     /// If items are same we just remove from both lists and forget about them
                     if (itemsComparisonResult == ComparisonResult.Identical)
                     {
-                        Logger.Log(String.Format("Google item '{0}' and Outlook item '{1}' are identical.", googleItem.Title.Text, OutlookUtilities.GetItemSubject(outlookItem)), EventType.Debug);
+                        Logger.Log(String.Format("Google item '{0}' and Outlook item '{1}' are identical.", googleItem.Summary, OutlookUtilities.GetItemSubject(outlookItem)), EventType.Debug);
                         this.GoogleItems.Remove(googleItem);
-                        this.OutlookItems.Remove(outlookItem);
+                        this.OutlookItems.Remove(outlookItem); //TODO: Release COM object
                         noFurtherCheckNeeded = true;
                         this._syncResult.IdenticalItems++;
                         break;
@@ -183,7 +131,7 @@ namespace R.GoogleOutlookSync
                     /// change source item will be ignored
                     else if (itemsComparisonResult == ComparisonResult.SameButChanged)
                     {
-                        Logger.Log(String.Format("Google item '{0}' and Outlook item '{1}' are same but changed.", googleItem.Title.Text, OutlookUtilities.GetItemSubject(outlookItem)), EventType.Debug);
+                        Logger.Log(String.Format("Google item '{0}' and Outlook item '{1}' are same but changed.", googleItem.Summary, OutlookUtilities.GetItemSubject(outlookItem)), EventType.Debug);
                         var itemMatcher = new ItemMatcher(googleItem, outlookItem);
                         if (Properties.Settings.Default.SynchronizationOption == SyncOption.GoogleToOutlookOnly)
                             itemMatcher.SyncAction.Target = Target.Outlook;
@@ -205,9 +153,11 @@ namespace R.GoogleOutlookSync
                 /// If synchronization setting is OutlookToGoogleOnly only items with Target == Google will be added. No Outlook targeted items will be added
                 if (!noFurtherCheckNeeded && this.IsItemValid(outlookItem))
                 {
-                    var itemMatcher = new ItemMatcher(null, outlookItem);
-                    itemMatcher.SyncAction = this.GetNonPairedItemAction(outlookItem);
-                    
+                    var itemMatcher = new ItemMatcher(null, outlookItem)
+                    {
+                        SyncAction = this.GetNonPairedItemAction(outlookItem)
+                    };
+
                     Logger.Log(String.Format("Outlook item '{0}' has no pair.", OutlookUtilities.GetItemSubject(outlookItem)), EventType.Debug);
                     Logger.Log(String.Format("Action {0} will be performed on {1}", itemMatcher.SyncAction.Action, itemMatcher.SyncAction.Target), EventType.Debug);
 
@@ -225,10 +175,12 @@ namespace R.GoogleOutlookSync
             {
                 if (this.IsItemValid(googleItem))
                 {
-                    var itemMatcher = new ItemMatcher(googleItem, null);
-                    itemMatcher.SyncAction = this.GetNonPairedItemAction(googleItem);
+                    var itemMatcher = new ItemMatcher(googleItem, null)
+                    {
+                        SyncAction = this.GetNonPairedItemAction(googleItem)
+                    };
 
-                    Logger.Log(String.Format("Google item '{0}' has no pair.", googleItem.Title.Text), EventType.Debug);
+                    Logger.Log(String.Format("Google item '{0}' has no pair.", googleItem.Summary), EventType.Debug);
                     Logger.Log(String.Format("Action {0} will be performed on {1}", itemMatcher.SyncAction.Action, itemMatcher.SyncAction.Target), EventType.Debug);
 
                     if (((itemMatcher.SyncAction.Target == Target.Google) && (Properties.Settings.Default.SynchronizationOption != SyncOption.GoogleToOutlookOnly)) ||
@@ -249,7 +201,7 @@ namespace R.GoogleOutlookSync
         /// <param name="googleItem">Google item</param>
         /// <param name="outlookItem">Outlook item</param>
         /// <returns>true if IDs are same, false if IDs are different</returns>
-        protected bool CompareIDs(GoogleConn.AtomEntry googleItem, object outlookItem)
+        protected bool CompareIDs(Event googleItem, object outlookItem)
         {
             var outlookItemID = OutlookUtilities.GetItemID(outlookItem);
             var googleItemID = GoogleUtilities.GetItemID(googleItem);
@@ -266,7 +218,7 @@ namespace R.GoogleOutlookSync
         /// <param name="googleItem">Google item</param>
         /// <param name="outlookItem">Outlook item</param>
         /// <returns>true if items are identical, false if items differ</returns>
-        protected virtual ComparisonResult Compare(GoogleConn.AtomEntry googleItem, object outlookItem)
+        protected virtual ComparisonResult Compare(Event googleItem, object outlookItem)
         {
             throw new NotImplementedException();
         }
@@ -278,7 +230,7 @@ namespace R.GoogleOutlookSync
         /// </summary>
         /// <param name="outlookItem">Google item</param>
         /// <returns>Action and target this action should be performed on</returns>
-        private SyncAction GetNonPairedItemAction(GoogleConn.AtomEntry googleItem)
+        private SyncAction GetNonPairedItemAction(Event googleItem)
         {
             if (String.IsNullOrEmpty(GoogleUtilities.GetOutlookID(googleItem)))
                 return new SyncAction(Target.Outlook, Action.Create);
@@ -301,7 +253,7 @@ namespace R.GoogleOutlookSync
                 return new SyncAction(Target.Outlook, Action.Delete);
         }
 
-        protected abstract bool IsItemValid(GoogleConn.AtomEntry googleItem);
+        protected abstract bool IsItemValid(Event googleItem);
         protected abstract bool IsItemValid(object outlookItem);
         protected abstract void LoadGoogleItems();
         protected abstract void LoadOutlookItems();
@@ -316,7 +268,7 @@ namespace R.GoogleOutlookSync
         /// <param name="googleItem">Google item</param>
         /// <param name="outlookItem">Outlook item</param>
         /// <returns></returns>
-        private Target WhoLoses(GoogleConn.AtomEntry googleItem, object outlookItem)
+        private Target WhoLoses(Event googleItem, object outlookItem)
         {
             /// If merge master is defined explicitly by option we don't care on other possibilities
             /// Right now no other merge options but default one is available
@@ -339,7 +291,7 @@ namespace R.GoogleOutlookSync
                 throw new CannotDefineSynchronizationTargetException();
         }
 
-        protected virtual DateTime GetLastModificationTime(GoogleConn.AtomEntry googleItem)
+        protected virtual DateTime GetLastModificationTime(Event googleItem)
         {
             throw new NotImplementedException();
         }
@@ -371,27 +323,8 @@ namespace R.GoogleOutlookSync
             throw new NotImplementedException();
         }
 
-        internal void Unpair()
-        {
-
-            this.Init();
-            this.LoadGoogleItems();
-            foreach (var googleItem in this.GoogleItems)
-            {
-                GoogleUtilities.RemoveOutlookID(googleItem);
-                googleItem.BatchData = new GoogleConn.GDataBatchEntryData(GoogleConn.GDataBatchOperationType.update);
-                this._googleBatchUpdateFeed.Entries.Add(googleItem);
-            }
-            var result = this._googleConnection.Batch(this._googleBatchUpdateFeed, new Uri(this._googleBatchUpdateFeed.Batch));
-
-            this.LoadOutlookItems();
-            foreach (var outlookItem in this.OutlookItems)
-            {
-                OutlookUtilities.RemoveGoogleID(outlookItem);
-                this.SaveOutlookItem(outlookItem);
-            }
-        }
-
         protected abstract void SaveOutlookItem(object outlookItem);
+        public abstract SyncResult Sync();
+        internal abstract void Unpair();
     }
 }

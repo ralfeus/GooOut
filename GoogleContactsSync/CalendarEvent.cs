@@ -2,9 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Google.GData.Calendar;
 using Microsoft.Office.Interop.Outlook;
-using Google.GData.Extensions;
+using Google.Apis.Calendar.v3.Data;
 
 namespace R.GoogleOutlookSync
 {
@@ -18,17 +17,17 @@ namespace R.GoogleOutlookSync
         internal List<Attendee> Attendees { get; set; }
         internal string Location { get; set; }
 
-        internal CalendarEvent(EventEntry googleItem)
+        internal CalendarEvent(Event googleItem)
         {
-            this.Subject = googleItem.Title.Text;
-            this.Body = googleItem.Content.Content;
-            this.ReminderSet = googleItem.Reminder != null;
-            this.ReminderMinutes = this.ReminderSet ? googleItem.Reminder.Minutes : 0;
-            this.Attendees = new List<Attendee>(googleItem.Participants.Count - 1);
-            foreach (Who participant in googleItem.Participants)
-                if (participant.Rel != "http://schemas.google.com/g/2005#event.organizer")
-                    this.Attendees.Add(new Attendee(participant.Email, participant.Attendee_Type, participant.Attendee_Status));
-            this.Location = googleItem.Locations[0].ValueString;
+            this.Subject = googleItem.Summary;
+            this.Body = googleItem.Description;
+            this.ReminderSet = googleItem.Reminders != null;
+            this.ReminderMinutes = this.ReminderSet ? googleItem.Reminders.Overrides.FirstOrDefault().Minutes.Value : 0;
+            this.Attendees = new List<Attendee>(googleItem.Attendees.Count - 1);
+            foreach (EventAttendee participant in googleItem.Attendees)
+                if (participant.Organizer.Value)
+                    this.Attendees.Add(new Attendee(participant.Email, GoogleUtilities.GetAttendeeType(participant), participant.ResponseStatus));
+            this.Location = googleItem.Location;
             this.Schedule = new EventSchedule(googleItem);
         }
 
@@ -72,20 +71,28 @@ namespace R.GoogleOutlookSync
                 this.Subject.GetHashCode();
         }
 
-        internal void ToGoogle(EventEntry googleItem)
+        internal void ToGoogle(Event googleItem)
         {
             this.Schedule.ToGoogle(googleItem);
 
             if (this.ReminderSet)
             {
-                googleItem.Reminder = new Google.GData.Extensions.Reminder();
-                googleItem.Reminder.Minutes = this.ReminderMinutes;
+                googleItem.Reminders = new Event.RemindersData();
+                googleItem.Reminders.Overrides.Add(new EventReminder
+                {
+                    Minutes = this.ReminderMinutes
+                });
             }
         }
 
-        internal EventEntry ToGoogle()
+        internal Event ToGoogle()
         {
-            EventEntry googleItem = new EventEntry(this.Subject, this.Body, this.Location);
+            Event googleItem = new Event()
+            {
+                Summary = this.Subject,
+                Description = this.Body,
+                Location = this.Location
+            };
             this.ToGoogle(googleItem);
             return googleItem;
         }

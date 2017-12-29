@@ -2,11 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Google.GData.Calendar;
 using Microsoft.Office.Interop.Outlook;
 using System.Text.RegularExpressions;
-using Google.GData.Extensions;
 using System.Runtime.InteropServices;
+using Google.Apis.Calendar.v3.Data;
 
 namespace R.GoogleOutlookSync
 {
@@ -18,50 +17,22 @@ namespace R.GoogleOutlookSync
         internal DateTime StartTime { get; set; }
         internal string TimeZone { get; set; }
 
-        internal EventSchedule(EventEntry googleItem, List<EventEntry> recurrenceExceptions = null)
+        internal EventSchedule(Event googleItem, List<Event> recurrenceExceptions = null)
         {
-            if (googleItem.Recurrence == null)
+            this.AllDayEvent = !string.IsNullOrEmpty(googleItem.Start.Date);
+            this.TimeZone = googleItem.Start.TimeZone;
+            if (this.AllDayEvent)
             {
-                this.StartTime = googleItem.Times[0].StartTime;
-                this.EndTime = googleItem.Times[0].EndTime;
-                this.AllDayEvent = googleItem.Times[0].AllDay;
+                this.StartTime = DateTime.Parse(googleItem.Start.Date);
+                this.EndTime = DateTime.Parse(googleItem.End.Date);
+            } else
+            {
+                this.StartTime = googleItem.Start.DateTime.Value;
+                this.EndTime = googleItem.End.DateTime.Value;
             }
-            else
+            if (googleItem.Recurrence != null)
             {
-
-                var startTimeMatch = Regex.Match(googleItem.Recurrence.Value, "DTSTART(;TZID=.+)?(;VALUE=DATE)?:(\\d{4})(\\d{2})(\\d{2})(T(\\d{2})(\\d{2})(\\d{2})Z?)?\r\n");
-                var endTimeMatch = Regex.Match(googleItem.Recurrence.Value, "DTEND(;TZID=.+)?(;VALUE=DATE)?:(\\d{4})(\\d{2})(\\d{2})(T(\\d{2})(\\d{2})(\\d{2})Z?)?\r\n");
-                this.AllDayEvent = startTimeMatch.Groups[2].Value == ";VALUE=DATE";
-                if (this.AllDayEvent)
-                {
-                    this.StartTime = new DateTime(
-                        Convert.ToInt32(startTimeMatch.Groups[3].Value),
-                        Convert.ToInt32(startTimeMatch.Groups[4].Value),
-                        Convert.ToInt32(startTimeMatch.Groups[5].Value));
-                    this.EndTime = new DateTime(
-                        Convert.ToInt32(endTimeMatch.Groups[3].Value),
-                        Convert.ToInt32(endTimeMatch.Groups[4].Value),
-                        Convert.ToInt32(endTimeMatch.Groups[5].Value));
-                }
-                else
-                {
-                    this.StartTime = new DateTime(
-                        Convert.ToInt32(startTimeMatch.Groups[3].Value),
-                        Convert.ToInt32(startTimeMatch.Groups[4].Value),
-                        Convert.ToInt32(startTimeMatch.Groups[5].Value),
-                        Convert.ToInt32(startTimeMatch.Groups[7].Value),
-                        Convert.ToInt32(startTimeMatch.Groups[8].Value),
-                        Convert.ToInt32(startTimeMatch.Groups[9].Value));
-                    this.EndTime = new DateTime(
-                        Convert.ToInt32(endTimeMatch.Groups[3].Value),
-                        Convert.ToInt32(endTimeMatch.Groups[4].Value),
-                        Convert.ToInt32(endTimeMatch.Groups[5].Value),
-                        Convert.ToInt32(endTimeMatch.Groups[7].Value),
-                        Convert.ToInt32(endTimeMatch.Groups[8].Value),
-                        Convert.ToInt32(endTimeMatch.Groups[9].Value));
-                    this.TimeZone = startTimeMatch.Groups[1].Value.Substring(6);
-                }
-                this.RecurrencePattern = new EventRecurrence(googleItem.Recurrence, recurrenceExceptions);
+                this.RecurrencePattern = new EventRecurrence(googleItem, recurrenceExceptions);
             }
         }
 
@@ -73,6 +44,16 @@ namespace R.GoogleOutlookSync
             this.TimeZone = outlookItem.StartTimeZone.ID;
             if (outlookItem.IsRecurring && (outlookItem.RecurrenceState == OlRecurrenceState.olApptMaster))
                 this.RecurrencePattern = new EventRecurrence(outlookItem.GetRecurrencePattern());
+        }
+
+        public static bool operator ==(EventSchedule source, EventSchedule target)
+        {
+            return source.Equals(target);
+        }
+
+        public static bool operator !=(EventSchedule source, EventSchedule target)
+        {
+            return !source.Equals(target);
         }
 
         public override bool Equals(object obj)
@@ -95,19 +76,21 @@ namespace R.GoogleOutlookSync
         /// Because Google recurrence pattern contains scheduling information (like start time and end time) 
         /// it's better to delegate such work to EventSchedule object
         /// </summary>
-        internal Recurrence GetGoogleRecurrence()
+        internal IList<string> GetGoogleRecurrence()
         {
             string result = "";
-            if (this.AllDayEvent)
-            {
-                result = String.Format("DTSTART;VALUE=DATE:{0}\r\n", this.StartTime.ToString("yyyyMMdd"));
-                result += String.Format("DTEND;VALUE=DATE:{0}\r\n", this.EndTime.ToString("yyyyMMdd"));
-            }
-            else
-            {
-                result = String.Format("DTSTART;TZID={0}:{1}\r\n", TimeZones.GetTZ(this.TimeZone), this.StartTime.ToString("yyyyMMddTHHmmss"));
-                result += String.Format("DTEND;TZID={0}:{1}\r\n", TimeZones.GetTZ(this.TimeZone), this.EndTime.ToString("yyyyMMddTHHmmss"));
-            }
+            /// This part isn't needed for new Google API
+            //if (this.AllDayEvent)
+            //{
+            //    result = String.Format("DTSTART;VALUE=DATE:{0}\r\n", this.StartTime.ToString("yyyyMMdd"));
+            //    result += String.Format("DTEND;VALUE=DATE:{0}\r\n", this.EndTime.ToString("yyyyMMdd"));
+            //}
+            //else
+            //{
+            //    result = String.Format("DTSTART;TZID={0}:{1}\r\n", TimeZones.GetTZ(this.TimeZone), this.StartTime.ToString("yyyyMMddTHHmmss"));
+            //    result += String.Format("DTEND;TZID={0}:{1}\r\n", TimeZones.GetTZ(this.TimeZone), this.EndTime.ToString("yyyyMMddTHHmmss"));
+            //}
+
             /// RFC 2445 tells VTIMEZONE must be set if event start is defined by DTSTART and DTEND elements
             //var timeZone = String.Format("VTIMEZONE={0};", "");
 
@@ -122,17 +105,12 @@ namespace R.GoogleOutlookSync
             var month = this.RecurrencePattern.Frequency == RecurrenceFrequency.Yearly ? String.Format("BYMONTH={0};", this.RecurrencePattern.Month) : "";
             var until = this.RecurrencePattern.EndMethod == EndBy.Date ? String.Format("UNTIL={0}", this.RecurrencePattern.EndDate.ToString("yyyyMMddTHHmmssZ")) : "";
 
-            var rule = String.Format("RRULE:{0}{1}{2}{3}{4}{5}{6}", frequency, interval, count, month, byDay, byMonthDay, until);
+            var rule = string.Format("RRULE:{0}{1}{2}{3}{4}{5}{6}", frequency, interval, count, month, byDay, byMonthDay, until);
             result += rule.Substring(0, rule.Length - 1);
 
-            var recurrence = new Recurrence();
-            recurrence.Value = result;
-            return recurrence;
-        }
+            //TODO: Add recurrence exceptions
 
-        private Google.GData.Extensions.RecurrenceException GetGoogleRecurrenceExceptions()
-        {
-            throw new NotImplementedException();
+            return new List<string> { result };
         }
 
         internal void GetOutlookRecurrence(AppointmentItem outlookItem)
@@ -140,10 +118,12 @@ namespace R.GoogleOutlookSync
             RecurrencePattern outlookRec = outlookItem.GetRecurrencePattern();
             if (!this.AllDayEvent)
             {
-                /// Set time of the even taking consideration difference of time zones. 
+                /// Set time of the event taking consideration difference of time zones. 
                 /// This makes sense only in case the event isn't all day one
-                var googleTimeZone = TimeZoneInfo.FindSystemTimeZoneById(TimeZones.GetWindowsTimeZone(this.TimeZone));
+                /// Google event time is already converted to local time zone
+                var googleTimeZone = TimeZoneInfo.Local; 
                 var outlookTimeZone = TimeZoneInfo.FindSystemTimeZoneById(outlookItem.StartTimeZone.ID);
+                /// StartTime property contains only time (not date)
                 outlookRec.StartTime = TimeZoneInfo.ConvertTime(this.StartTime, googleTimeZone, outlookTimeZone);
             }
  
@@ -170,18 +150,23 @@ namespace R.GoogleOutlookSync
 
         }
 
-        internal void ToGoogle(EventEntry googleItem)
+        internal void ToGoogle(Event googleItem)
         {
             if (this.RecurrencePattern != null)
             {
                 googleItem.Recurrence = this.GetGoogleRecurrence();
-                googleItem.RecurrenceException = this.GetGoogleRecurrenceExceptions();
             }
             else
             {
-                if (googleItem.Times.Count != 0)
-                    googleItem.Times.Clear();
-                googleItem.Times.Add(new When(this.StartTime, this.EndTime, this.AllDayEvent));
+                if (this.AllDayEvent)
+                {
+                    googleItem.Start.Date = this.StartTime.ToString("yyyy-MM-dd");
+                    googleItem.End.Date = this.EndTime.ToString("yyyy-MM-dd");
+                } else
+                {
+                    googleItem.Start.DateTime = this.StartTime;
+                    googleItem.End.DateTime = this.EndTime;
+                }
             }
         }
 

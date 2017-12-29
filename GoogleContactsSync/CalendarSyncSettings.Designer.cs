@@ -53,10 +53,10 @@
             // 
             // groupBox2
             // 
-            resources.ApplyResources(groupBox2, "groupBox2");
             groupBox2.Controls.Add(label3);
             groupBox2.Controls.Add(this.txtCalendarName);
             groupBox2.Controls.Add(this.groupBox1);
+            resources.ApplyResources(groupBox2, "groupBox2");
             groupBox2.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
             groupBox2.Name = "groupBox2";
             groupBox2.TabStop = false;
@@ -73,11 +73,11 @@
             // 
             // groupBox1
             // 
-            resources.ApplyResources(this.groupBox1, "groupBox1");
             this.groupBox1.Controls.Add(this.label2);
             this.groupBox1.Controls.Add(this.nudSyncDaysAfter);
             this.groupBox1.Controls.Add(label1);
             this.groupBox1.Controls.Add(this.nudSyncDaysBefore);
+            resources.ApplyResources(this.groupBox1, "groupBox1");
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.TabStop = false;
             // 
